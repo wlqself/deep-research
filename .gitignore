@@ -1,0 +1,48 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Runtime databases
+*.sqlite
+*.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+*.db
+
+# User and vector data
+data/
+.rag-upload-tmp/
+.rag-diagnostic*/
+.rag-diagnostic*.sqlite
+-files*
+
+# Logs
+*.log
+
+# Accidental Windows cache directory
+%SystemDrive%/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local planning notes
+ROADMAP.md
+
+# Local agent metadata
+.agents/
+.codex/

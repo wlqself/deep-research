@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+langchain
+langgraph
+langgraph-checkpoint-sqlite
+langchain-openai
+langchain-tavily
+python-dotenv
+pydantic-settings>=2,<3
+httpx>=0.27,<1
+trafilatura>=1.12,<3
+deepagents>=0.7.7,<0.8
+qdrant-client
+langchain-qdrant
+langchain-text-splitters
+pypdf
+python-multipart

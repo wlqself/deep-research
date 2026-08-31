@@ -1,0 +1,17 @@
+from pathlib import Path
+from deep_research.rag.parsers import parse_pdf_document
+
+documents, page_count = parse_pdf_document(
+    Path(r"C:\Users\93757\Desktop\王乐启.pdf"),
+    document_id="manual-test-doc",
+    collection_id="deep_research_documents",
+    filename="王乐启.pdf",
+    mime_type="application/pdf",
+)
+
+print("page_count:", page_count)
+print("documents:", len(documents))
+
+for document in documents[:3]:
+    print(document.metadata)
+    print(document.page_content[:200])

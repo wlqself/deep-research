@@ -1,0 +1,4990 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Deep Research</title>
+
+    <style>
+        :root {
+            --page: #f5f7fb;
+            --surface: #ffffff;
+            --ink: #172033;
+            --muted: #64748b;
+            --border: #dbe3ed;
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --teal: #0f766e;
+            --danger: #b91c1c;
+            --shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100dvh;
+            background: var(--page);
+            color: var(--ink);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system,
+                BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        body {
+            display: grid;
+            grid-template-columns: 248px minmax(0, 1fr) minmax(220px, 280px);
+        }
+
+        .sidebar {
+            grid-column: 1;
+            grid-row: 1 / 3;
+            display: flex;
+            flex-direction: column;
+            min-height: 100dvh;
+            padding: 20px 14px;
+            border-right: 1px solid var(--border);
+            background: #eef2f7;
+        }
+
+        .sidebar-brand {
+            padding: 8px 10px 18px;
+            color: var(--ink);
+            font-size: 17px;
+            font-weight: 750;
+        }
+
+        .new-thread {
+            min-height: 42px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--ink);
+            background: #fff;
+            font-weight: 700;
+            text-align: left;
+        }
+
+        .new-thread:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .sidebar-label {
+            margin: 24px 10px 8px;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .thread-list {
+            display: grid;
+            gap: 4px;
+            overflow-y: auto;
+        }
+
+        .sidebar-footer {
+            display: grid;
+            gap: 8px;
+            margin-top: auto;
+            padding-top: 16px;
+        }
+
+        .knowledge-dialog {
+            width: min(760px, calc(100vw - 32px));
+            max-height: min(78dvh, 760px);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0;
+            color: var(--ink);
+            background: var(--surface);
+        }
+
+        .knowledge-dialog::backdrop {
+            background: rgba(23, 32, 51, 0.34);
+        }
+
+        .knowledge-dialog-content {
+            display: grid;
+            gap: 14px;
+            padding: 20px;
+        }
+
+        .knowledge-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .knowledge-heading h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .knowledge-heading-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .knowledge-summary {
+            color: #111827;
+            font-size: 13px;
+            font-weight: 800;
+            line-height: 1.6;
+            text-align: right;
+            overflow-wrap: anywhere;
+        }
+
+        .knowledge-overview {
+            grid-column: 3;
+            grid-row: 2;
+            align-self: start;
+            display: grid;
+            gap: 16px;
+            margin: 20px 24px 0 0;
+            padding: 18px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface);
+            box-shadow: var(--shadow);
+        }
+
+        .knowledge-overview h2 {
+            margin: 0;
+            color: #111827;
+            font-size: 16px;
+            font-weight: 800;
+        }
+
+        .knowledge-overview-list {
+            display: grid;
+            gap: 0;
+            margin: 0;
+        }
+
+        .knowledge-overview-row {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            color: #111827;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .knowledge-overview-row:first-child {
+            padding-top: 0;
+        }
+
+        .knowledge-overview-row:last-child {
+            padding-bottom: 0;
+            border-bottom: 0;
+        }
+
+        .knowledge-overview-value {
+            color: #111827;
+            font-size: 18px;
+            font-weight: 900;
+        }
+
+        .knowledge-refresh,
+        .knowledge-close-button {
+            min-height: 36px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0 10px;
+            color: var(--muted);
+            background: #fff;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .knowledge-refresh {
+            width: 36px;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .knowledge-refresh:hover,
+        .knowledge-close-button:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .knowledge-upload {
+            display: block;
+            min-height: 42px;
+            border: 1px solid var(--primary);
+            border-radius: 6px;
+            padding: 8px 10px;
+            color: #fff;
+            background: var(--primary);
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .knowledge-upload:hover {
+            background: var(--primary-dark);
+        }
+
+        .knowledge-upload input {
+            display: none;
+        }
+
+        .knowledge-status {
+            min-height: 16px;
+            color: var(--muted);
+            font-size: 11px;
+            overflow-wrap: anywhere;
+        }
+
+        .knowledge-list {
+            display: grid;
+            gap: 8px;
+            max-height: min(48dvh, 440px);
+            margin: 0;
+            padding: 0;
+            overflow-y: auto;
+            list-style: none;
+        }
+
+        .knowledge-item {
+            display: grid;
+            gap: 6px;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: #fff;
+        }
+
+        .knowledge-name {
+            color: #111827;
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+            text-overflow: ellipsis;
+        }
+
+        .knowledge-meta {
+            display: grid;
+            gap: 2px;
+            color: #111827;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.5;
+        }
+
+        .knowledge-empty {
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .knowledge-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .knowledge-action {
+            min-height: 36px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 0 7px;
+            color: var(--muted);
+            background: #fff;
+            font-size: 11px;
+        }
+
+        .knowledge-action:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .knowledge-open-button,
+        .memory-open-button,
+        .thread-settings-button {
+            width: 100%;
+            min-height: 42px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--muted);
+            background: transparent;
+            font-size: 13px;
+            font-weight: 700;
+            text-align: left;
+        }
+
+        .knowledge-open-button:hover,
+        .memory-open-button:hover,
+        .thread-settings-button:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: #f8fbff;
+        }
+
+        .memory-dialog {
+            width: min(860px, calc(100vw - 32px));
+            max-height: min(86dvh, 820px);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0;
+            color: var(--ink);
+            background: var(--surface);
+        }
+
+        .memory-dialog::backdrop {
+            background: rgba(23, 32, 51, 0.42);
+        }
+
+        .memory-dialog-content {
+            display: grid;
+            gap: 16px;
+            padding: 20px;
+        }
+
+        .memory-heading,
+        .memory-pagination,
+        .memory-form-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .memory-heading h2,
+        .memory-form-heading h3 {
+            margin: 0;
+        }
+
+        .memory-heading h2 {
+            font-size: 18px;
+        }
+
+        .memory-close-button,
+        .memory-search-button,
+        .memory-clear-button,
+        .memory-page-button,
+        .memory-form-cancel,
+        .memory-form-submit {
+            min-height: 40px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0 12px;
+            color: var(--muted);
+            background: #fff;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .memory-close-button:hover,
+        .memory-search-button:hover,
+        .memory-page-button:hover:not(:disabled),
+        .memory-form-cancel:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .memory-clear-button {
+            border-color: #fecaca;
+            color: var(--danger);
+        }
+
+        .memory-clear-button:hover {
+            border-color: var(--danger);
+            background: #fff7f7;
+        }
+
+        .memory-toolbar {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto auto;
+            align-items: end;
+            gap: 8px;
+        }
+
+        .memory-toolbar label,
+        .memory-field label {
+            display: grid;
+            gap: 6px;
+            color: var(--ink);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .memory-toolbar input,
+        .memory-field input,
+        .memory-field textarea {
+            width: 100%;
+            min-height: 40px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 10px;
+            color: var(--ink);
+            background: #fbfcfe;
+            font: inherit;
+            font-size: 13px;
+        }
+
+        .memory-field textarea {
+            min-height: 82px;
+            resize: vertical;
+            line-height: 1.5;
+        }
+
+        .memory-toolbar input:focus,
+        .memory-field input:focus,
+        .memory-field textarea:focus {
+            outline: 3px solid rgba(37, 99, 235, 0.18);
+            border-color: var(--primary);
+        }
+
+        .memory-tabs {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 2px;
+        }
+
+        .memory-tab {
+            min-height: 40px;
+            flex: 0 0 auto;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0 12px;
+            color: var(--muted);
+            background: #fff;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .memory-tab:hover,
+        .memory-tab.is-active {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: #eff6ff;
+        }
+
+        .memory-status {
+            min-height: 18px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .memory-list {
+            display: grid;
+            gap: 8px;
+            max-height: min(45dvh, 430px);
+            margin: 0;
+            padding: 0;
+            overflow-y: auto;
+            list-style: none;
+        }
+
+        .memory-item {
+            display: grid;
+            gap: 8px;
+            min-width: 0;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: #fff;
+        }
+
+        .memory-item-heading {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .memory-item-title {
+            min-width: 0;
+            color: var(--ink);
+            font-size: 14px;
+            font-weight: 800;
+            line-height: 1.45;
+            overflow-wrap: anywhere;
+        }
+
+        .memory-item-kind {
+            flex: 0 0 auto;
+            color: var(--primary);
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .memory-item-summary,
+        .memory-item-content {
+            color: #334155;
+            font-size: 13px;
+            line-height: 1.55;
+            overflow-wrap: anywhere;
+        }
+
+        .memory-item-content {
+            display: -webkit-box;
+            overflow: hidden;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 3;
+        }
+
+        .memory-item-meta,
+        .memory-item-keywords {
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+        }
+
+        .memory-item-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .memory-item-action {
+            min-height: 38px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 0 10px;
+            color: var(--muted);
+            background: #fff;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .memory-item-action:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .memory-item-action.is-danger:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+            background: #fff7f7;
+        }
+
+        .memory-empty {
+            padding: 28px 12px;
+            color: var(--muted);
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .memory-pagination {
+            justify-content: center;
+        }
+
+        .memory-page-indicator {
+            min-width: 72px;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .memory-form {
+            display: grid;
+            gap: 12px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .memory-form-heading h3 {
+            font-size: 15px;
+        }
+
+        .memory-form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .memory-field.is-wide {
+            grid-column: 1 / -1;
+        }
+
+        .memory-form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .memory-form-submit {
+            border-color: var(--primary);
+            color: #fff;
+            background: var(--primary);
+        }
+
+        .memory-form-submit:hover:not(:disabled) {
+            background: var(--primary-dark);
+        }
+
+        @media (max-width: 720px) {
+            .memory-dialog {
+                width: calc(100vw - 16px);
+                max-height: calc(100dvh - 16px);
+            }
+
+            .memory-dialog-content {
+                gap: 12px;
+                padding: 14px;
+            }
+
+            .memory-toolbar {
+                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            }
+
+            .memory-toolbar label {
+                grid-column: 1 / -1;
+            }
+
+            .memory-list {
+                max-height: 40dvh;
+            }
+
+            .memory-form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .memory-field.is-wide {
+                grid-column: auto;
+            }
+
+            .memory-form-actions {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .memory-form-actions button {
+                width: 100%;
+            }
+        }
+
+        .settings-dialog {
+            width: min(680px, calc(100vw - 32px));
+            max-height: min(72dvh, 720px);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0;
+            color: var(--ink);
+            background: var(--surface);
+        }
+
+        .settings-dialog::backdrop {
+            background: rgba(23, 32, 51, 0.34);
+        }
+
+        .settings-dialog-content {
+            display: grid;
+            gap: 16px;
+            padding: 20px;
+        }
+
+        .settings-dialog-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .settings-dialog-heading h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .settings-close-button {
+            min-height: 36px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0 10px;
+            color: var(--muted);
+            background: #fff;
+            font-size: 13px;
+        }
+
+        .settings-summary {
+            min-height: 96px;
+            max-height: 48dvh;
+            margin: 0;
+            overflow: auto;
+            padding: 12px;
+            border: 1px solid var(--border);
+            color: var(--ink);
+            background: #fbfcfe;
+            font: inherit;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .thread-item {
+            width: 100%;
+            min-height: 40px;
+            overflow: hidden;
+            border: 1px solid transparent;
+            border-radius: 7px;
+            padding: 8px 10px;
+            color: var(--muted);
+            background: transparent;
+            font-size: 13px;
+            text-align: left;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .thread-item:hover,
+        .thread-item.is-active {
+            border-color: var(--border);
+            color: var(--ink);
+            background: #fff;
+        }
+
+        .thread-context-menu {
+            position: fixed;
+            z-index: 40;
+            display: grid;
+            min-width: 148px;
+            padding: 4px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 14px 32px rgba(15, 23, 42, 0.18);
+        }
+
+        .thread-context-menu[hidden] {
+            display: none;
+        }
+
+        .thread-context-action {
+            min-height: 40px;
+            border: 0;
+            border-radius: 6px;
+            padding: 0 10px;
+            color: var(--ink);
+            background: transparent;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        .thread-context-action:hover,
+        .thread-context-action:focus-visible {
+            background: #eff6ff;
+            color: var(--primary);
+        }
+
+        .thread-context-action.is-danger:hover,
+        .thread-context-action.is-danger:focus-visible {
+            background: #fff7f7;
+            color: var(--danger);
+        }
+
+        .thread-rename-dialog {
+            width: min(420px, calc(100vw - 32px));
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0;
+            color: var(--ink);
+            background: var(--surface);
+        }
+
+        .thread-rename-dialog::backdrop {
+            background: rgba(23, 32, 51, 0.34);
+        }
+
+        .thread-rename-content {
+            display: grid;
+            gap: 16px;
+            padding: 20px;
+        }
+
+        .thread-rename-content h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .thread-rename-label {
+            display: grid;
+            gap: 6px;
+            color: var(--ink);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .thread-rename-input {
+            min-height: 42px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 10px;
+            color: var(--ink);
+            background: #fbfcfe;
+            font: inherit;
+        }
+
+        .thread-rename-input:focus {
+            outline: 3px solid rgba(37, 99, 235, 0.18);
+            border-color: var(--primary);
+        }
+
+        .thread-rename-error {
+            min-height: 18px;
+            color: var(--danger);
+            font-size: 12px;
+        }
+
+        .thread-rename-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .thread-rename-actions button {
+            min-height: 40px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0 12px;
+            color: var(--muted);
+            background: #fff;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .thread-rename-submit {
+            border-color: var(--primary) !important;
+            color: #fff !important;
+            background: var(--primary) !important;
+        }
+
+        .thread-rename-submit:hover:not(:disabled) {
+            background: var(--primary-dark) !important;
+        }
+
+        button,
+        textarea {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        button:focus-visible,
+        textarea:focus-visible {
+            outline: 3px solid rgba(37, 99, 235, 0.28);
+            outline-offset: 2px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1180px;
+            min-height: 72px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .brand {
+            color: var(--ink);
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 0;
+            text-decoration: none;
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .status::before {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--teal);
+            content: "";
+        }
+
+        .workspace {
+            display: grid;
+            grid-template-columns: minmax(280px, 0.78fr) minmax(0, 1.22fr);
+            gap: 24px;
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 32px 24px 56px;
+        }
+
+        .topbar {
+            grid-column: 2;
+            max-width: 980px;
+            width: 100%;
+        }
+
+        .workspace {
+            grid-column: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            max-width: 980px;
+            width: 100%;
+            height: calc(100dvh - 72px);
+            min-height: 0;
+            padding-top: 20px;
+            padding-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .answer-panel {
+            order: 1;
+            width: 100%;
+            height: auto;
+            min-height: 0;
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .composer {
+            order: 2;
+            width: 100%;
+            position: static;
+            flex: 0 0 auto;
+            align-self: stretch;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.96);
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+        }
+
+        .composer form {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: end;
+            gap: 10px;
+        }
+
+        .composer textarea {
+            min-height: 52px;
+            max-height: 180px;
+            resize: vertical;
+            border: 0;
+            background: transparent;
+            padding: 8px 10px;
+        }
+
+        .composer textarea:focus {
+            outline: 0;
+        }
+
+        .composer .actions {
+            margin-top: 0;
+        }
+
+        .composer .primary-action {
+            flex: 0 0 auto;
+            width: 44px;
+            min-height: 44px;
+            border-radius: 50%;
+            padding: 0;
+            font-size: 0;
+        }
+
+    .composer .primary-action::after {
+        color: #fff;
+        content: "↑";
+        font-size: 22px;
+        line-height: 1;
+    }
+
+    .composer .primary-action.is-busy::after {
+        content: "…";
+    }
+
+    .composer .secondary-action {
+        min-height: 44px;
+        padding: 0 12px;
+    }
+
+    .composer .eyebrow,
+    .composer .field-label,
+    .composer .prompt-list,
+    .composer .helper {
+        display: none;
+    }
+
+        .composer,
+        .answer-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        .composer {
+            align-self: stretch;
+            padding: 10px 12px;
+        }
+
+        .eyebrow {
+            margin-bottom: 10px;
+            color: var(--primary);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        h1,
+        h2 {
+            margin: 0;
+            letter-spacing: 0;
+        }
+
+        h1 {
+            font-size: clamp(28px, 4vw, 42px);
+            line-height: 1.12;
+        }
+
+        h2 {
+            font-size: 18px;
+        }
+
+        .field-label {
+            display: block;
+            margin: 28px 0 8px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        textarea {
+            display: block;
+            width: 100%;
+            min-height: 168px;
+            resize: vertical;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px;
+            color: var(--ink);
+            background: #fbfcfe;
+            line-height: 1.6;
+        }
+
+        textarea::placeholder {
+            color: #94a3b8;
+        }
+
+        .prompt-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .prompt {
+            min-height: 40px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 11px;
+            color: var(--muted);
+            background: #fff;
+            font-size: 13px;
+            text-align: left;
+            transition: border-color 180ms ease, color 180ms ease,
+                background 180ms ease;
+        }
+
+        .prompt:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: #f8fbff;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .primary-action,
+        .secondary-action {
+            min-height: 46px;
+            border-radius: 8px;
+            padding: 0 16px;
+            font-weight: 700;
+            transition: background 180ms ease, border-color 180ms ease,
+                opacity 180ms ease;
+        }
+
+        .primary-action {
+            flex: 1;
+            border: 1px solid var(--primary);
+            color: #fff;
+            background: var(--primary);
+        }
+
+        .primary-action:hover:not(:disabled) {
+            background: var(--primary-dark);
+        }
+
+        .secondary-action {
+            border: 1px solid var(--border);
+            color: var(--muted);
+            background: #fff;
+        }
+
+        .secondary-action:hover:not(:disabled) {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.55;
+        }
+
+        .answer-panel {
+            padding: 24px;
+        }
+
+        .answer-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .answer-content {
+            min-height: 0;
+            padding-top: 20px;
+            color: #263449;
+            font-size: 16px;
+            line-height: 1.8;
+            overflow-wrap: anywhere;
+        }
+
+        .conversation {
+            display: grid;
+            align-content: start;
+            gap: 18px;
+            flex: 1 1 auto;
+            min-height: 0;
+            padding-top: 20px;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            scrollbar-gutter: stable;
+        }
+
+        .conversation-turn {
+            display: grid;
+            align-content: start;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .chat-message {
+            width: min(100%, 94%);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+        }
+
+        .chat-message.user {
+            justify-self: end;
+            width: fit-content;
+            max-width: 72%;
+            color: #1e3a8a;
+            background: #eff6ff;
+        }
+
+        .chat-message.assistant {
+            justify-self: start;
+            background: #fff;
+        }
+
+        .chat-label {
+            margin-bottom: 3px;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .chat-content {
+            overflow-wrap: anywhere;
+        }
+
+        .conversation-empty {
+            color: var(--muted);
+            font-size: 15px;
+        }
+
+        .answer-content.is-streaming {
+            white-space: pre-wrap;
+        }
+
+        .answer-content > :first-child {
+            margin-top: 0;
+        }
+
+        .answer-content > :last-child {
+            margin-bottom: 0;
+        }
+
+        .answer-content h1,
+        .answer-content h2,
+        .answer-content h3,
+        .answer-content h4 {
+            margin: 1.5em 0 0.55em;
+            color: var(--ink);
+            line-height: 1.3;
+        }
+
+        .answer-content h1 {
+            font-size: 28px;
+        }
+
+        .answer-content h2 {
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+            font-size: 22px;
+        }
+
+        .answer-content h3 {
+            font-size: 18px;
+        }
+
+        .answer-content p {
+            margin: 0 0 1em;
+        }
+
+        .answer-content ul,
+        .answer-content ol {
+            margin: 0 0 1em;
+            padding-left: 1.5em;
+        }
+
+        .answer-content li + li {
+            margin-top: 0.35em;
+        }
+
+        .answer-content blockquote {
+            margin: 1em 0;
+            padding: 10px 16px;
+            border-left: 3px solid var(--primary);
+            color: var(--muted);
+            background: #f8fbff;
+        }
+
+        .answer-content hr {
+            margin: 1.5em 0;
+            border: 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .answer-content table {
+            width: 100%;
+            margin: 1em 0 1.25em;
+            border-collapse: collapse;
+            font-size: 15px;
+            line-height: 1.55;
+        }
+
+        .answer-content th,
+        .answer-content td {
+            padding: 9px 10px;
+            border: 1px solid var(--border);
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .answer-content th {
+            color: var(--ink);
+            background: #f8fafc;
+            font-weight: 700;
+        }
+
+        .answer-content code:not(pre code) {
+            padding: 2px 5px;
+            border-radius: 4px;
+            color: #9f1239;
+            background: #fff1f2;
+            font-size: 0.9em;
+        }
+
+        .answer-content pre {
+            max-width: 100%;
+            margin: 1em 0;
+            overflow-x: auto;
+            border-radius: 6px;
+            padding: 14px 16px;
+            color: #f8fafc;
+            background: #172033;
+            line-height: 1.6;
+        }
+
+        .answer-content pre code {
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono",
+                monospace;
+            white-space: pre;
+        }
+
+        .answer-content img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .trace-panel {
+            margin-top: 18px;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .artifact-panel {
+            margin-top: 18px;
+            border-top: 1px solid var(--border);
+            padding-top: 14px;
+        }
+
+        .artifact-heading {
+            margin: 0 0 8px;
+            color: var(--ink);
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .artifact-list {
+            display: grid;
+            gap: 6px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .artifact-link {
+            display: inline-flex;
+            width: fit-content;
+            align-items: center;
+            gap: 6px;
+            color: var(--primary-dark);
+            font-size: 14px;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+
+        .artifact-link::before {
+            content: "↓";
+            text-decoration: none;
+        }
+
+        .plan-panel {
+            margin-top: 18px;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 0;
+        }
+
+        .plan-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .plan-heading h3 {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .plan-status {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .plan-list {
+            display: grid;
+            gap: 8px;
+            margin: 0;
+            padding-left: 22px;
+        }
+
+        .plan-item {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 8px 10px;
+            border-left: 3px solid var(--border);
+            background: #fbfcfe;
+            font-size: 13px;
+        }
+
+        .plan-item[data-status="in_progress"] {
+            border-left-color: var(--primary);
+        }
+
+        .plan-item[data-status="completed"] {
+            border-left-color: var(--teal);
+        }
+
+        .plan-item-status {
+            flex: 0 0 auto;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+
+        .task-panel {
+            margin-top: 18px;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 0;
+        }
+
+        .task-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .task-heading h3 {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .task-status,
+        .task-item-status {
+            flex: 0 0 auto;
+            color: var(--muted);
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .task-list {
+            display: grid;
+            gap: 8px;
+            min-height: 66px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .task-item {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) max-content;
+            gap: 8px 12px;
+            min-height: 66px;
+            padding: 10px 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .task-copy {
+            min-width: 0;
+        }
+
+        .task-owner {
+            color: var(--ink);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .task-description,
+        .task-error {
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+        }
+
+        .task-error {
+            color: var(--danger);
+        }
+
+        .task-item[data-status="completed"] .task-item-status {
+            color: var(--teal);
+        }
+
+        .task-item[data-status="failed"] .task-item-status {
+            color: var(--danger);
+        }
+
+        .memory-notice {
+            margin-top: 18px;
+            border: 1px solid var(--primary);
+            border-left-width: 3px;
+            padding: 10px 12px;
+            color: var(--ink);
+            background: #f8fbff;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .trace-panel summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            min-height: 46px;
+            cursor: pointer;
+            color: var(--ink);
+            font-size: 14px;
+            font-weight: 700;
+            list-style: none;
+        }
+
+        .trace-panel summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .trace-status {
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .trace-list {
+            display: grid;
+            gap: 8px;
+            max-height: 220px;
+            overflow-y: auto;
+            padding: 0 0 14px;
+        }
+
+        .trace-item {
+            padding: 8px 10px;
+            border-left: 3px solid var(--border);
+            color: var(--muted);
+            background: #fbfcfe;
+            font-size: 13px;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+        }
+
+        .trace-item.running {
+            border-left-color: var(--primary);
+        }
+
+        .trace-item.completed {
+            border-left-color: var(--teal);
+        }
+
+        .trace-item.failed {
+            border-left-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .answer-content.is-empty {
+            color: var(--muted);
+        }
+
+        .answer-content a {
+            color: var(--primary-dark);
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+
+        @media (max-width: 820px) {
+            body {
+                display: block;
+            }
+
+            .sidebar {
+                min-height: auto;
+                border-right: 0;
+                border-bottom: 1px solid var(--border);
+                padding: 12px 16px;
+            }
+
+            .sidebar-brand {
+                padding: 4px 0 10px;
+            }
+
+            .sidebar-label {
+                margin: 14px 0 6px;
+            }
+
+            .thread-list {
+                grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            }
+
+            .topbar,
+            .workspace,
+            .knowledge-overview {
+                grid-column: auto;
+                max-width: none;
+            }
+
+            .workspace {
+                height: auto;
+                min-height: 0;
+                padding-bottom: 32px;
+                overflow: visible;
+            }
+
+            .topbar {
+                padding: 0 16px;
+            }
+
+            .knowledge-overview {
+                grid-row: auto;
+                margin: 0 16px 16px;
+            }
+
+            .workspace {
+                padding-top: 16px;
+            }
+
+            .answer-panel {
+                height: calc(100dvh - 250px);
+                min-height: 360px;
+                flex: 0 0 auto;
+            }
+
+            .answer-content {
+                min-height: 0;
+            }
+        }
+
+        @media (max-width: 520px) {
+            .topbar {
+                min-height: 64px;
+                padding: 0 16px;
+            }
+
+            .workspace {
+                gap: 16px;
+                padding: 16px 16px 32px;
+            }
+
+            .composer,
+            .answer-panel {
+                padding: 18px;
+            }
+
+            .composer {
+                padding: 8px 10px;
+            }
+
+            .composer .actions {
+                flex-direction: row;
+                align-items: center;
+            }
+
+            .composer .secondary-action {
+                width: auto;
+            }
+
+            h1 {
+                font-size: 30px;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .secondary-action,
+            .primary-action {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .task-item {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 4px;
+            }
+
+            .task-item-status {
+                justify-self: start;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                scroll-behavior: auto !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <aside class="sidebar" aria-label="会话导航">
+        <div class="sidebar-brand">Deep Research</div>
+
+        <button
+            id="new-thread"
+            class="new-thread"
+            type="button"
+        >
+            + 新对话
+        </button>
+
+        <div class="sidebar-label">最近对话</div>
+
+        <nav
+            id="thread-list"
+            class="thread-list"
+            aria-label="最近对话"
+        ></nav>
+
+        <div class="sidebar-footer">
+            <button
+                id="knowledge-open"
+                class="knowledge-open-button"
+                type="button"
+            >
+                知识库
+            </button>
+            <button
+                id="memory-open"
+                class="memory-open-button"
+                type="button"
+            >
+                长期记忆
+            </button>
+            <button
+                id="thread-settings"
+                class="thread-settings-button"
+                type="button"
+            >
+                会话设置
+            </button>
+        </div>
+    </aside>
+
+    <div
+        id="thread-context-menu"
+        class="thread-context-menu"
+        role="menu"
+        hidden
+    >
+        <button
+            class="thread-context-action"
+            type="button"
+            role="menuitem"
+            data-thread-action="rename"
+        >
+            重命名
+        </button>
+        <button
+            class="thread-context-action is-danger"
+            type="button"
+            role="menuitem"
+            data-thread-action="delete"
+        >
+            删除会话
+        </button>
+    </div>
+
+    <dialog
+        id="thread-rename-dialog"
+        class="thread-rename-dialog"
+        aria-labelledby="thread-rename-title"
+    >
+        <form id="thread-rename-form" class="thread-rename-content">
+            <h2 id="thread-rename-title">重命名会话</h2>
+            <label class="thread-rename-label" for="thread-rename-input">
+                会话名称
+                <input
+                    id="thread-rename-input"
+                    class="thread-rename-input"
+                    name="title"
+                    maxlength="80"
+                    required
+                    autocomplete="off"
+                >
+            </label>
+            <div
+                id="thread-rename-error"
+                class="thread-rename-error"
+                role="alert"
+                aria-live="polite"
+            ></div>
+            <div class="thread-rename-actions">
+                <button
+                    id="thread-rename-cancel"
+                    type="button"
+                >
+                    取消
+                </button>
+                <button
+                    id="thread-rename-submit"
+                    class="thread-rename-submit"
+                    type="submit"
+                >
+                    保存
+                </button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="settings-dialog" class="settings-dialog">
+        <div class="settings-dialog-content">
+            <div class="settings-dialog-heading">
+                <h2>当前会话摘要</h2>
+                <button
+                    id="settings-close"
+                    class="settings-close-button"
+                    type="button"
+                >
+                    关闭
+                </button>
+            </div>
+            <pre id="settings-summary" class="settings-summary"></pre>
+        </div>
+    </dialog>
+
+    <dialog id="knowledge-dialog" class="knowledge-dialog">
+        <div class="knowledge-dialog-content">
+            <div class="knowledge-heading">
+                <h2>知识库</h2>
+                <div class="knowledge-heading-actions">
+                    <div
+                        id="knowledge-summary"
+                        class="knowledge-summary"
+                        aria-live="polite"
+                    >统计加载中...</div>
+                    <button
+                        id="knowledge-refresh"
+                        class="knowledge-refresh"
+                        type="button"
+                        title="刷新知识库"
+                        aria-label="刷新知识库"
+                    >↻</button>
+                    <button
+                        id="knowledge-close"
+                        class="knowledge-close-button"
+                        type="button"
+                    >
+                        关闭
+                    </button>
+                </div>
+            </div>
+            <label class="knowledge-upload">
+                上传文件
+                <input
+                    id="knowledge-file"
+                    type="file"
+                    accept=".pdf,.md,.markdown,.txt,application/pdf,text/markdown,text/plain"
+                />
+            </label>
+            <div
+                id="knowledge-status"
+                class="knowledge-status"
+                role="status"
+                aria-live="polite"
+            ></div>
+            <ul
+                id="knowledge-list"
+                class="knowledge-list"
+                aria-label="知识库文件"
+            ></ul>
+        </div>
+    </dialog>
+
+    <header class="topbar">
+        <a class="brand" href="/">Deep Research</a>
+        <div id="status" class="status" role="status" aria-live="polite">
+            就绪
+        </div>
+    </header>
+
+    <dialog
+        id="memory-dialog"
+        class="memory-dialog"
+        aria-labelledby="memory-dialog-title"
+    >
+        <div class="memory-dialog-content">
+            <div class="memory-heading">
+                <h2 id="memory-dialog-title">长期记忆</h2>
+                <button
+                    id="memory-close"
+                    class="memory-close-button"
+                    type="button"
+                >
+                    关闭
+                </button>
+            </div>
+
+            <div class="memory-toolbar">
+                <label for="memory-search">
+                    关键词
+                    <input
+                        id="memory-search"
+                        type="search"
+                        autocomplete="off"
+                        placeholder="搜索标题、摘要或关键词"
+                    >
+                </label>
+                <button
+                    id="memory-search-button"
+                    class="memory-search-button"
+                    type="button"
+                >
+                    搜索
+                </button>
+                <button
+                    id="memory-clear"
+                    class="memory-clear-button"
+                    type="button"
+                >
+                    清空当前类
+                </button>
+            </div>
+
+            <nav
+                id="memory-tabs"
+                class="memory-tabs"
+                aria-label="记忆分类"
+            >
+                <button class="memory-tab is-active" type="button" data-kind="">
+                    全部
+                </button>
+                <button class="memory-tab" type="button" data-kind="user">
+                    用户
+                </button>
+                <button class="memory-tab" type="button" data-kind="reference">
+                    参考
+                </button>
+                <button class="memory-tab" type="button" data-kind="project">
+                    项目
+                </button>
+                <button class="memory-tab" type="button" data-kind="feedback">
+                    反馈
+                </button>
+            </nav>
+
+            <div
+                id="memory-status"
+                class="memory-status"
+                role="status"
+                aria-live="polite"
+            ></div>
+
+            <ul id="memory-list" class="memory-list"></ul>
+
+            <div class="memory-pagination">
+                <button
+                    id="memory-prev"
+                    class="memory-page-button"
+                    type="button"
+                >
+                    上一页
+                </button>
+                <span id="memory-page-indicator" class="memory-page-indicator">
+                    第 1 页
+                </span>
+                <button
+                    id="memory-next"
+                    class="memory-page-button"
+                    type="button"
+                >
+                    下一页
+                </button>
+            </div>
+
+            <form id="memory-form" class="memory-form" hidden>
+                <div class="memory-form-heading">
+                    <h3 id="memory-form-title">编辑记忆</h3>
+                </div>
+                <div class="memory-form-grid">
+                    <div class="memory-field is-wide">
+                        <label for="memory-edit-title">标题</label>
+                        <input id="memory-edit-title" name="title" required>
+                    </div>
+                    <div class="memory-field is-wide">
+                        <label for="memory-edit-summary">摘要</label>
+                        <textarea id="memory-edit-summary" name="summary" required></textarea>
+                    </div>
+                    <div class="memory-field is-wide">
+                        <label for="memory-edit-content">内容</label>
+                        <textarea id="memory-edit-content" name="content" required></textarea>
+                    </div>
+                    <div class="memory-field is-wide">
+                        <label for="memory-edit-keywords">关键词</label>
+                        <input id="memory-edit-keywords" name="keywords" required>
+                    </div>
+                    <div id="memory-reference-fields" class="memory-field is-wide" hidden>
+                        <label for="memory-edit-url">URL</label>
+                        <input id="memory-edit-url" name="url" type="url">
+                    </div>
+                    <div id="memory-reference-date-field" class="memory-field" hidden>
+                        <label for="memory-edit-verified-at">验证时间</label>
+                        <input id="memory-edit-verified-at" name="verified_at" type="datetime-local">
+                    </div>
+                    <div id="memory-feedback-fields" class="memory-field is-wide" hidden>
+                        <label for="memory-edit-incorrect">错误做法</label>
+                        <textarea id="memory-edit-incorrect" name="incorrect"></textarea>
+                        <label for="memory-edit-correct">正确做法</label>
+                        <textarea id="memory-edit-correct" name="correct"></textarea>
+                        <label for="memory-edit-applies-when">适用条件</label>
+                        <textarea id="memory-edit-applies-when" name="applies_when"></textarea>
+                    </div>
+                </div>
+                <div class="memory-form-actions">
+                    <button
+                        id="memory-form-cancel"
+                        class="memory-form-cancel"
+                        type="button"
+                    >
+                        取消
+                    </button>
+                    <button
+                        id="memory-form-submit"
+                        class="memory-form-submit"
+                        type="submit"
+                    >
+                        保存修改
+                    </button>
+                </div>
+            </form>
+        </div>
+    </dialog>
+
+    <main class="workspace">
+    <section class="composer" aria-label="发送消息">
+
+            <form id="research-form">
+
+                <textarea
+                    id="question"
+                    name="question"
+                    required
+                    placeholder="向 Deep Research 提问..."
+                    aria-label="输入问题"
+                ></textarea>
+
+                <div class="actions">
+                    <button id="submit-button" class="primary-action" type="submit" aria-label="发送">↑</button>
+
+                    <button
+                        id="cancel-button"
+                        class="secondary-action"
+                        type="button"
+                        hidden
+                    >
+                        停止
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <section class="answer-panel" aria-labelledby="answer-title">
+            <div class="answer-heading">
+                <h2 id="answer-title">回答</h2>
+            </div>
+
+            <div
+                id="conversation"
+                class="conversation"
+                role="log"
+                aria-live="polite"
+                aria-label="研究对话"
+            >
+                <div
+                    id="conversation-empty"
+                    class="conversation-empty"
+                >
+                    输入问题后，对话会显示在这里。
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <aside
+        id="knowledge-overview"
+        class="knowledge-overview"
+        aria-labelledby="knowledge-overview-title"
+    >
+        <h2 id="knowledge-overview-title">知识库概览</h2>
+        <div class="knowledge-overview-list">
+            <div class="knowledge-overview-row">
+                <span>文件数量</span>
+                <strong id="knowledge-document-count" class="knowledge-overview-value">--</strong>
+            </div>
+            <div class="knowledge-overview-row">
+                <span>Chunk 数量</span>
+                <strong id="knowledge-chunk-count" class="knowledge-overview-value">--</strong>
+            </div>
+            <div class="knowledge-overview-row">
+                <span>已索引</span>
+                <strong id="knowledge-indexed-count" class="knowledge-overview-value">--</strong>
+            </div>
+            <div class="knowledge-overview-row">
+                <span>处理中</span>
+                <strong id="knowledge-processing-count" class="knowledge-overview-value">--</strong>
+            </div>
+            <div class="knowledge-overview-row">
+                <span>失败</span>
+                <strong id="knowledge-failed-count" class="knowledge-overview-value">--</strong>
+            </div>
+            <div class="knowledge-overview-row">
+                <span>待处理</span>
+                <strong id="knowledge-pending-count" class="knowledge-overview-value">--</strong>
+            </div>
+        </div>
+    </aside>
+
+    <script
+        src="https://cdn.jsdelivr.net/npm/marked@15.0.12/lib/marked.umd.js"
+    ></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"
+    ></script>
+
+    <script>
+        const form = document.querySelector("#research-form");
+        const questionInput = document.querySelector("#question");
+        const submitButton = document.querySelector("#submit-button");
+        const cancelButton = document.querySelector("#cancel-button");
+        const status = document.querySelector("#status");
+        const conversation = document.querySelector("#conversation");
+        let conversationEmpty = document.querySelector(
+            "#conversation-empty",
+        );
+        const newThreadButton = document.querySelector("#new-thread");
+        const threadList = document.querySelector("#thread-list");
+        const threadContextMenu = document.querySelector(
+            "#thread-context-menu",
+        );
+        const threadRenameDialog = document.querySelector(
+            "#thread-rename-dialog",
+        );
+        const threadRenameForm = document.querySelector(
+            "#thread-rename-form",
+        );
+        const threadRenameInput = document.querySelector(
+            "#thread-rename-input",
+        );
+        const threadRenameError = document.querySelector(
+            "#thread-rename-error",
+        );
+        const threadRenameCancel = document.querySelector(
+            "#thread-rename-cancel",
+        );
+        const threadRenameSubmit = document.querySelector(
+            "#thread-rename-submit",
+        );
+        const threadSettingsButton = document.querySelector(
+            "#thread-settings",
+        );
+        const settingsDialog = document.querySelector("#settings-dialog");
+        const settingsCloseButton = document.querySelector("#settings-close");
+        const settingsSummary = document.querySelector("#settings-summary");
+        const promptButtons = document.querySelectorAll("[data-prompt]");
+        const knowledgeFileInput = document.querySelector(
+            "#knowledge-file",
+        );
+        const knowledgeDialog = document.querySelector(
+            "#knowledge-dialog",
+        );
+        const knowledgeOpenButton = document.querySelector(
+            "#knowledge-open",
+        );
+        const memoryOpenButton = document.querySelector(
+            "#memory-open",
+        );
+        const memoryDialog = document.querySelector(
+            "#memory-dialog",
+        );
+        const memoryCloseButton = document.querySelector(
+            "#memory-close",
+        );
+        const memorySearchInput = document.querySelector(
+            "#memory-search",
+        );
+        const memorySearchButton = document.querySelector(
+            "#memory-search-button",
+        );
+        const memoryClearButton = document.querySelector(
+            "#memory-clear",
+        );
+        const memoryTabs = document.querySelector(
+            "#memory-tabs",
+        );
+        const memoryStatus = document.querySelector(
+            "#memory-status",
+        );
+        const memoryList = document.querySelector(
+            "#memory-list",
+        );
+        const memoryPrevButton = document.querySelector(
+            "#memory-prev",
+        );
+        const memoryNextButton = document.querySelector(
+            "#memory-next",
+        );
+        const memoryPageIndicator = document.querySelector(
+            "#memory-page-indicator",
+        );
+        const memoryForm = document.querySelector(
+            "#memory-form",
+        );
+        const memoryFormTitle = document.querySelector(
+            "#memory-form-title",
+        );
+        const memoryFormCancel = document.querySelector(
+            "#memory-form-cancel",
+        );
+        const memoryFormSubmit = document.querySelector(
+            "#memory-form-submit",
+        );
+        const memoryEditTitle = document.querySelector(
+            "#memory-edit-title",
+        );
+        const memoryEditSummary = document.querySelector(
+            "#memory-edit-summary",
+        );
+        const memoryEditContent = document.querySelector(
+            "#memory-edit-content",
+        );
+        const memoryEditKeywords = document.querySelector(
+            "#memory-edit-keywords",
+        );
+        const memoryReferenceFields = document.querySelector(
+            "#memory-reference-fields",
+        );
+        const memoryReferenceDateField = document.querySelector(
+            "#memory-reference-date-field",
+        );
+        const memoryEditUrl = document.querySelector(
+            "#memory-edit-url",
+        );
+        const memoryEditVerifiedAt = document.querySelector(
+            "#memory-edit-verified-at",
+        );
+        const memoryFeedbackFields = document.querySelector(
+            "#memory-feedback-fields",
+        );
+        const memoryEditIncorrect = document.querySelector(
+            "#memory-edit-incorrect",
+        );
+        const memoryEditCorrect = document.querySelector(
+            "#memory-edit-correct",
+        );
+        const memoryEditAppliesWhen = document.querySelector(
+            "#memory-edit-applies-when",
+        );
+        const knowledgeCloseButton = document.querySelector(
+            "#knowledge-close",
+        );
+        const knowledgeRefreshButton = document.querySelector(
+            "#knowledge-refresh",
+        );
+        const knowledgeStatus = document.querySelector(
+            "#knowledge-status",
+        );
+        const knowledgeSummary = document.querySelector(
+            "#knowledge-summary",
+        );
+        const knowledgeOverviewFields = {
+            document_count: document.querySelector(
+                "#knowledge-document-count",
+            ),
+            chunk_count: document.querySelector(
+                "#knowledge-chunk-count",
+            ),
+            indexed_count: document.querySelector(
+                "#knowledge-indexed-count",
+            ),
+            processing_count: document.querySelector(
+                "#knowledge-processing-count",
+            ),
+            failed_count: document.querySelector(
+                "#knowledge-failed-count",
+            ),
+            pending_count: document.querySelector(
+                "#knowledge-pending-count",
+            ),
+        };
+        const knowledgeList = document.querySelector(
+            "#knowledge-list",
+        );
+        function setMemoryStatus(message, state = "") {
+            if (!memoryStatus) {
+                return;
+            }
+
+            memoryStatus.textContent = message || "";
+            memoryStatus.dataset.state = state;
+        }
+
+        function formatMemoryDate(value) {
+            if (typeof value !== "string" || !value) {
+                return "更新时间未知";
+            }
+
+            const date = new Date(value);
+
+            if (Number.isNaN(date.getTime())) {
+                return "更新时间未知";
+            }
+
+            return new Intl.DateTimeFormat("zh-CN", {
+                dateStyle: "medium",
+                timeStyle: "short",
+            }).format(date);
+        }
+
+        function toDateTimeLocal(value) {
+            if (typeof value !== "string" || !value) {
+                return "";
+            }
+
+            const date = new Date(value);
+
+            if (Number.isNaN(date.getTime())) {
+                return "";
+            }
+
+            const pad = (part) => String(part).padStart(2, "0");
+
+            return [
+                date.getFullYear(),
+                pad(date.getMonth() + 1),
+                pad(date.getDate()),
+            ].join("-") + "T" + [
+                pad(date.getHours()),
+                pad(date.getMinutes()),
+            ].join(":");
+        }
+
+        function openMemoryDialog() {
+            if (!memoryDialog) {
+                return;
+            }
+
+            if (typeof memoryDialog.showModal === "function") {
+                memoryDialog.showModal();
+            } else {
+                memoryDialog.setAttribute("open", "");
+            }
+
+            memoryPage = 1;
+            void loadMemories();
+        }
+
+        function closeMemoryDialog() {
+            if (!memoryDialog) {
+                return;
+            }
+
+            if (typeof memoryDialog.close === "function") {
+                memoryDialog.close();
+            } else {
+                memoryDialog.removeAttribute("open");
+            }
+
+            closeMemoryEditor();
+        }
+
+        function closeMemoryEditor() {
+            memoryEditingEntry = null;
+
+            if (memoryForm) {
+                memoryForm.hidden = true;
+                memoryForm.reset();
+            }
+        }
+
+        function createMemoryAction(label, className, handler) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = `memory-item-action ${className || ""}`;
+            button.textContent = label;
+            button.addEventListener("click", handler);
+            return button;
+        }
+
+        function renderMemories(memories) {
+            if (!memoryList) {
+                return;
+            }
+
+            memoryList.replaceChildren();
+
+            if (!Array.isArray(memories) || memories.length === 0) {
+                const empty = document.createElement("li");
+                empty.className = "memory-empty";
+                empty.textContent = "当前没有符合条件的记忆";
+                memoryList.append(empty);
+                return;
+            }
+
+            for (const entry of memories) {
+                if (!entry || typeof entry.id !== "string") {
+                    continue;
+                }
+
+                const item = document.createElement("li");
+                item.className = "memory-item";
+
+                const heading = document.createElement("div");
+                heading.className = "memory-item-heading";
+
+                const title = document.createElement("div");
+                title.className = "memory-item-title";
+                title.textContent = entry.title || "未命名记忆";
+
+                const kind = document.createElement("span");
+                kind.className = "memory-item-kind";
+                kind.textContent = memoryKindLabels[entry.kind] || "记忆";
+                heading.append(title, kind);
+
+                const summary = document.createElement("div");
+                summary.className = "memory-item-summary";
+                summary.textContent = entry.summary || "";
+
+                const content = document.createElement("div");
+                content.className = "memory-item-content";
+                content.textContent = entry.content || "";
+
+                const meta = document.createElement("div");
+                meta.className = "memory-item-meta";
+                meta.textContent = [
+                    `来源：${entry.source_type || "未知"}`,
+                    formatMemoryDate(entry.updated_at),
+                ].join(" · ");
+
+                const keywords = document.createElement("div");
+                keywords.className = "memory-item-keywords";
+                keywords.textContent = Array.isArray(entry.keywords)
+                    ? `关键词：${entry.keywords.join("、")}`
+                    : "";
+
+                const actions = document.createElement("div");
+                actions.className = "memory-item-actions";
+                actions.append(
+                    createMemoryAction(
+                        "编辑",
+                        "",
+                        () => openMemoryEditor(entry),
+                    ),
+                    createMemoryAction(
+                        "删除",
+                        "is-danger",
+                        () => void deleteMemory(entry),
+                    ),
+                );
+
+                item.append(
+                    heading,
+                    summary,
+                    content,
+                    meta,
+                    keywords,
+                    actions,
+                );
+                memoryList.append(item);
+            }
+        }
+
+        async function loadMemories() {
+            if (!memoryList) {
+                return;
+            }
+
+            setMemoryStatus("正在加载…");
+            memoryList.replaceChildren();
+
+            const params = new URLSearchParams({
+                page: String(memoryPage),
+            });
+
+            if (memoryKind) {
+                params.set("kind", memoryKind);
+            }
+
+            const keyword = memorySearchInput?.value.trim() || "";
+
+            if (keyword) {
+                params.set("keyword", keyword);
+            }
+
+            try {
+                const response = await fetch(`/memory?${params.toString()}`);
+
+                if (!response.ok) {
+                    throw new Error("memory list failed");
+                }
+
+                const payload = await response.json();
+
+                if (!payload || !Array.isArray(payload.memories)) {
+                    throw new Error("memory list response is invalid");
+                }
+
+                renderMemories(payload.memories);
+
+                if (memoryPageIndicator) {
+                    memoryPageIndicator.textContent = `第 ${memoryPage} 页`;
+                }
+
+                if (memoryPrevButton) {
+                    memoryPrevButton.disabled = memoryPage <= 1;
+                }
+
+                if (memoryNextButton) {
+                    memoryNextButton.disabled = (
+                        payload.memories.length < payload.page_size
+                    );
+                }
+
+                setMemoryStatus(
+                    payload.memories.length
+                        ? `显示 ${payload.memories.length} 条`
+                        : "没有匹配结果",
+                );
+            } catch (error) {
+                renderMemories([]);
+                setMemoryStatus("记忆加载失败，请重试", "error");
+            }
+        }
+
+        function openMemoryEditor(entry) {
+            if (
+                !memoryForm ||
+                !entry ||
+                typeof entry.id !== "string"
+            ) {
+                return;
+            }
+
+            memoryEditingEntry = entry;
+            memoryForm.hidden = false;
+            memoryEditTitle.value = entry.title || "";
+            memoryEditSummary.value = entry.summary || "";
+            memoryEditContent.value = entry.content || "";
+            memoryEditKeywords.value = Array.isArray(entry.keywords)
+                ? entry.keywords.join(", ")
+                : "";
+            memoryEditUrl.value = entry.url || "";
+            memoryEditVerifiedAt.value = toDateTimeLocal(entry.verified_at);
+            memoryEditIncorrect.value = entry.incorrect || "";
+            memoryEditCorrect.value = entry.correct || "";
+            memoryEditAppliesWhen.value = entry.applies_when || "";
+
+            const isReference = entry.kind === "reference";
+            const isFeedback = entry.kind === "feedback";
+
+            memoryReferenceFields.hidden = !isReference;
+            memoryReferenceDateField.hidden = !isReference;
+            memoryFeedbackFields.hidden = !isFeedback;
+            memoryFormTitle.textContent = (
+                `编辑${memoryKindLabels[entry.kind] || ""}记忆`
+            );
+            memoryEditTitle.focus();
+        }
+
+        async function submitMemoryEdit(event) {
+            event.preventDefault();
+
+            if (!memoryEditingEntry || !memoryFormSubmit) {
+                return;
+            }
+
+            memoryFormSubmit.disabled = true;
+            setMemoryStatus("正在保存…");
+
+            const payload = {
+                title: memoryEditTitle.value.trim(),
+                summary: memoryEditSummary.value.trim(),
+                content: memoryEditContent.value.trim(),
+                keywords: memoryEditKeywords.value
+                    .split(",")
+                    .map((item) => item.trim())
+                    .filter(Boolean),
+                url: memoryEditUrl.value.trim() || null,
+                verified_at: memoryEditVerifiedAt.value
+                    ? new Date(memoryEditVerifiedAt.value).toISOString()
+                    : null,
+                incorrect: memoryEditIncorrect.value.trim() || null,
+                correct: memoryEditCorrect.value.trim() || null,
+                applies_when: memoryEditAppliesWhen.value.trim() || null,
+            };
+
+            try {
+                const response = await fetch(
+                    `/memory/${encodeURIComponent(memoryEditingEntry.kind)}/${encodeURIComponent(memoryEditingEntry.id)}`,
+                    {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(payload),
+                    },
+                );
+
+                if (!response.ok) {
+                    throw new Error("memory update failed");
+                }
+
+                closeMemoryEditor();
+                setMemoryStatus("已保存");
+                await loadMemories();
+            } catch (error) {
+                setMemoryStatus("保存失败，请检查内容后重试", "error");
+            } finally {
+                memoryFormSubmit.disabled = false;
+            }
+        }
+
+        async function deleteMemory(entry) {
+            if (!entry || typeof entry.id !== "string") {
+                return;
+            }
+
+            if (!window.confirm(`确定删除“${entry.title || "这条记忆"}”吗？`)) {
+                return;
+            }
+
+            setMemoryStatus("正在删除…");
+
+            try {
+                const response = await fetch(
+                    `/memory/${encodeURIComponent(entry.kind)}/${encodeURIComponent(entry.id)}`,
+                    { method: "DELETE" },
+                );
+
+                if (!response.ok) {
+                    throw new Error("memory delete failed");
+                }
+
+                closeMemoryEditor();
+                setMemoryStatus("已删除");
+                await loadMemories();
+            } catch (error) {
+                setMemoryStatus("删除失败，请重试", "error");
+            }
+        }
+
+        async function clearMemories() {
+            const label = memoryKindLabels[memoryKind] || "全部";
+
+            if (!window.confirm(`确定清空${label}记忆吗？此操作不可撤销。`)) {
+                return;
+            }
+
+            setMemoryStatus("正在清空…");
+
+            const params = memoryKind
+                ? `?kind=${encodeURIComponent(memoryKind)}`
+                : "";
+
+            try {
+                const response = await fetch(
+                    `/memory${params}`,
+                    { method: "DELETE" },
+                );
+
+                if (!response.ok) {
+                    throw new Error("memory clear failed");
+                }
+
+                closeMemoryEditor();
+                memoryPage = 1;
+                setMemoryStatus("已清空");
+                await loadMemories();
+            } catch (error) {
+                setMemoryStatus("清空失败，请重试", "error");
+            }
+        }
+
+        const memoryKindLabels = {
+            "": "全部",
+            user: "用户",
+            reference: "参考",
+            project: "项目",
+            feedback: "反馈",
+        };
+        let memoryKind = "";
+        let memoryPage = 1;
+        let memoryEditingEntry = null;
+
+        let controller = null;
+        let cancellationRequested = false;
+        let answer = null;
+        let tracePanel = null;
+        let traceStatus = null;
+        let traceList = null;
+        let planPanel = null;
+        let planStatus = null;
+        let planList = null;
+        let taskPanel = null;
+        let taskStatus = null;
+        let taskList = null;
+        let memoryNotice = null;
+        let currentThreadSummary = null;
+        const activeTasks = new Map();
+
+        const knowledgeStatusLabels = {
+            pending: "待处理",
+            processing: "处理中",
+            indexed: "已索引",
+            failed: "失败",
+            deleting: "删除中",
+            deleted: "已删除",
+        };
+
+        function formatKnowledgeBytes(value) {
+            if (!Number.isFinite(value) || value < 0) {
+                return "未知大小";
+            }
+
+            if (value < 1024) {
+                return `${value} B`;
+            }
+
+            if (value < 1024 * 1024) {
+                return `${(value / 1024).toFixed(1)} KB`;
+            }
+
+            return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+        }
+
+        function setKnowledgeStatus(message) {
+            if (knowledgeStatus) {
+                knowledgeStatus.textContent = message || "";
+            }
+        }
+
+        function openKnowledgeDialog() {
+            if (!knowledgeDialog) {
+                return;
+            }
+
+            if (typeof knowledgeDialog.showModal === "function") {
+                knowledgeDialog.showModal();
+            } else {
+                knowledgeDialog.setAttribute("open", "");
+            }
+
+            void loadKnowledgeDocuments();
+        }
+
+        function closeKnowledgeDialog() {
+            if (!knowledgeDialog) {
+                return;
+            }
+
+            if (typeof knowledgeDialog.close === "function") {
+                knowledgeDialog.close();
+            } else {
+                knowledgeDialog.removeAttribute("open");
+            }
+        }
+
+        function renderKnowledgeStats(stats) {
+            if (!knowledgeSummary || !stats) {
+                return;
+            }
+
+            const values = [
+                stats.document_count,
+                stats.chunk_count,
+                stats.indexed_count,
+                stats.processing_count,
+                stats.failed_count,
+                stats.pending_count,
+            ];
+
+            if (!values.every((value) => Number.isInteger(value) && value >= 0)) {
+                knowledgeSummary.textContent = "统计数据异常";
+                return;
+            }
+
+            for (const [key, element] of Object.entries(
+                knowledgeOverviewFields,
+            )) {
+                if (element) {
+                    element.textContent = String(stats[key]);
+                }
+            }
+
+            knowledgeSummary.textContent = [
+                `${stats.document_count} 文件`,
+                `${stats.chunk_count} Chunk`,
+                `${stats.indexed_count} 已索引`,
+                `${stats.processing_count} 处理中`,
+                `${stats.failed_count} 失败`,
+                `${stats.pending_count} 待处理`,
+            ].join(" · ");
+        }
+
+        function renderKnowledgeDocuments(documents) {
+            if (!knowledgeList) {
+                return;
+            }
+
+            knowledgeList.replaceChildren();
+
+            if (!Array.isArray(documents) || documents.length === 0) {
+                const empty = document.createElement("li");
+                empty.className = "knowledge-empty";
+                empty.textContent = "暂无文件";
+                knowledgeList.append(empty);
+                return;
+            }
+
+            for (const item of documents) {
+                if (!item || typeof item.document_id !== "string") {
+                    continue;
+                }
+
+                const row = document.createElement("li");
+                row.className = "knowledge-item";
+
+                const name = document.createElement("div");
+                name.className = "knowledge-name";
+                name.textContent = (
+                    typeof item.filename === "string" && item.filename
+                        ? item.filename
+                        : "未命名文件"
+                );
+
+                const status = knowledgeStatusLabels[item.status] || "未知";
+                const meta = document.createElement("div");
+                meta.className = "knowledge-meta";
+                for (const value of [
+                    `状态：${status}`,
+                    `大小：${formatKnowledgeBytes(item.size_bytes)}`,
+                    `页数：${Number(item.page_count) || 0}`,
+                    `Chunk：${Number(item.chunk_count) || 0}`,
+                ]) {
+                    const line = document.createElement("div");
+                    line.textContent = value;
+                    meta.append(line);
+                }
+
+                const actions = document.createElement("div");
+                actions.className = "knowledge-actions";
+
+                if (item.status !== "deleted") {
+                    const download = document.createElement("a");
+                    download.className = "knowledge-action";
+                    download.textContent = "下载";
+                    download.href = (
+                        `/knowledge/documents/${encodeURIComponent(item.document_id)}/download`
+                    );
+                    download.setAttribute("aria-label", `下载 ${name.textContent}`);
+                    actions.append(download);
+                }
+
+                if (item.status === "failed" || item.status === "indexed") {
+                    const reindex = document.createElement("button");
+                    reindex.className = "knowledge-action";
+                    reindex.type = "button";
+                    reindex.textContent = "重新索引";
+                    reindex.addEventListener("click", () => {
+                        void reindexKnowledgeDocument(item.document_id);
+                    });
+                    actions.append(reindex);
+                }
+
+                if (item.status !== "deleted" && item.status !== "deleting") {
+                    const remove = document.createElement("button");
+                    remove.className = "knowledge-action";
+                    remove.type = "button";
+                    remove.textContent = "删除";
+                    remove.addEventListener("click", () => {
+                        void deleteKnowledgeDocument(item.document_id);
+                    });
+                    actions.append(remove);
+                }
+
+                row.append(name, meta, actions);
+                knowledgeList.append(row);
+            }
+        }
+
+        async function loadKnowledgeDocuments() {
+            try {
+                const [response, statsResponse] = await Promise.all([
+                    fetch("/knowledge/documents"),
+                    fetch("/knowledge/stats"),
+                ]);
+
+                if (!response.ok) {
+                    throw new Error("knowledge list failed");
+                }
+
+                const documents = await response.json();
+
+                if (!Array.isArray(documents)) {
+                    throw new Error("knowledge list response is invalid");
+                }
+
+                renderKnowledgeDocuments(documents);
+                setKnowledgeStatus("");
+
+                if (statsResponse.ok) {
+                    renderKnowledgeStats(await statsResponse.json());
+                } else if (knowledgeSummary) {
+                    knowledgeSummary.textContent = "统计暂不可用";
+                }
+            } catch (error) {
+                console.error("Knowledge list load failed", error);
+                setKnowledgeStatus("知识库加载失败");
+            }
+        }
+
+        async function uploadKnowledgeDocument(file) {
+            if (!file || knowledgeFileInput.disabled) {
+                return;
+            }
+
+            knowledgeFileInput.disabled = true;
+            setKnowledgeStatus("正在上传并索引...");
+
+            try {
+                const formData = new FormData();
+                formData.append("file", file);
+
+                const response = await fetch(
+                    "/knowledge/documents",
+                    {
+                        method: "POST",
+                        body: formData,
+                    },
+                );
+
+                if (!response.ok) {
+                    if (response.status === 409) {
+                        setKnowledgeStatus(
+                            "文件已存在，请在列表中重新索引",
+                        );
+                        await loadKnowledgeDocuments();
+                        return;
+                    }
+
+                    throw new Error("knowledge upload failed");
+                }
+
+                setKnowledgeStatus("已加入知识库");
+                await loadKnowledgeDocuments();
+            } catch {
+                setKnowledgeStatus("上传或索引失败");
+                await loadKnowledgeDocuments();
+            } finally {
+                knowledgeFileInput.disabled = false;
+                knowledgeFileInput.value = "";
+            }
+        }
+
+        async function reindexKnowledgeDocument(documentId) {
+            setKnowledgeStatus("正在重新索引...");
+
+            try {
+                const response = await fetch(
+                    `/knowledge/documents/${encodeURIComponent(documentId)}/reindex`,
+                    { method: "POST" },
+                );
+
+                if (!response.ok) {
+                    throw new Error("knowledge reindex failed");
+                }
+
+                setKnowledgeStatus("重新索引完成");
+                await loadKnowledgeDocuments();
+            } catch {
+                setKnowledgeStatus("重新索引失败");
+            }
+        }
+
+        async function deleteKnowledgeDocument(documentId) {
+            if (!window.confirm("确定删除这个知识库文件吗？")) {
+                return;
+            }
+
+            setKnowledgeStatus("正在删除...");
+
+            try {
+                const response = await fetch(
+                    `/knowledge/documents/${encodeURIComponent(documentId)}`,
+                    { method: "DELETE" },
+                );
+
+                if (!response.ok) {
+                    throw new Error("knowledge delete failed");
+                }
+
+                setKnowledgeStatus("已删除");
+                await loadKnowledgeDocuments();
+            } catch {
+                setKnowledgeStatus("删除失败");
+            }
+        }
+
+        function createThreadId() {
+            if (
+                globalThis.crypto &&
+                typeof globalThis.crypto.randomUUID === "function"
+            ) {
+                return globalThis.crypto.randomUUID();
+            }
+
+            return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+                /[xy]/g,
+                (character) => {
+                    const random = Math.floor(Math.random() * 16);
+                    const value =
+                        character === "x"
+                            ? random
+                            : (random & 0x3) | 0x8;
+
+                    return value.toString(16);
+                },
+            );
+        }
+
+        const THREAD_INDEX_KEY = "deep-research.threads.v1";
+        const MAX_RECENT_THREADS = 20;
+        const THREAD_ID_PATTERN =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+        function isValidThreadId(value) {
+            return (
+                typeof value === "string" &&
+                THREAD_ID_PATTERN.test(value)
+            );
+        }
+
+        function parseUpdatedAt(value) {
+            if (typeof value !== "string") {
+                return 0;
+            }
+
+            const timestamp = Date.parse(value);
+            return Number.isFinite(timestamp) ? timestamp : 0;
+        }
+
+        function loadThreadIndex() {
+            try {
+                const raw = localStorage.getItem(
+                    THREAD_INDEX_KEY,
+                );
+
+                if (!raw) {
+                    return null;
+                }
+
+                const parsed = JSON.parse(raw);
+
+                if (
+                    !parsed ||
+                    !Array.isArray(parsed.threads)
+                ) {
+                    return null;
+                }
+
+                const entries = [];
+                const seen = new Set();
+
+                for (const item of parsed.threads) {
+                    if (
+                        !item ||
+                        !isValidThreadId(item.thread_id) ||
+                        seen.has(item.thread_id)
+                    ) {
+                        continue;
+                    }
+
+                    seen.add(item.thread_id);
+
+                    entries.push({
+                        thread_id: item.thread_id,
+                        title:
+                            typeof item.title === "string" &&
+                            item.title.trim()
+                                ? item.title.trim().slice(0, 80)
+                                : "新对话",
+                        updated_at:
+                            typeof item.updated_at === "string"
+                                ? item.updated_at
+                                : new Date(0).toISOString(),
+                    });
+                }
+
+                entries.sort(
+                    (left, right) =>
+                        parseUpdatedAt(right.updated_at) -
+                        parseUpdatedAt(left.updated_at),
+                );
+
+                const activeThreadId =
+                    isValidThreadId(parsed.active_thread_id) &&
+                    entries.some(
+                        (item) =>
+                            item.thread_id ===
+                            parsed.active_thread_id,
+                    )
+                        ? parsed.active_thread_id
+                        : entries[0]?.thread_id || null;
+
+                return {
+                    active_thread_id: activeThreadId,
+                    threads: entries.slice(
+                        0,
+                        MAX_RECENT_THREADS,
+                    ),
+                };
+            } catch {
+                return null;
+            }
+        }
+
+        function persistThreadIndex() {
+            const entries = [...threads.entries()]
+                .filter(([id]) => isValidThreadId(id))
+                .map(([id, thread]) => ({
+                    thread_id: id,
+                    title:
+                        typeof thread.title === "string" &&
+                        thread.title.trim()
+                            ? thread.title.trim().slice(0, 80)
+                            : "新对话",
+                    updated_at:
+                        typeof thread.updated_at === "string"
+                            ? thread.updated_at
+                            : new Date().toISOString(),
+                }))
+                .sort(
+                    (left, right) =>
+                        parseUpdatedAt(right.updated_at) -
+                        parseUpdatedAt(left.updated_at),
+                )
+                .slice(0, MAX_RECENT_THREADS);
+
+            localStorage.setItem(
+                THREAD_INDEX_KEY,
+                JSON.stringify({
+                    active_thread_id: threadId,
+                    threads: entries,
+                }),
+            );
+        }
+
+        const savedThreadIndex = loadThreadIndex();
+        const threads = new Map(
+            (savedThreadIndex?.threads || []).map(
+                (item) => [
+                    item.thread_id,
+                    {
+                        title: item.title,
+                        updated_at: item.updated_at,
+                    },
+                ],
+            ),
+        );
+
+        let threadId =
+            savedThreadIndex?.active_thread_id ||
+            createThreadId();
+
+        if (!threads.has(threadId)) {
+            threads.set(threadId, {
+                title: "新对话",
+                updated_at: new Date().toISOString(),
+            });
+        }
+
+        persistThreadIndex();
+
+        let threadRestoreRequest = 0;
+        let contextThreadId = null;
+        let renameThreadId = null;
+
+        function setBusy(isBusy) {
+            submitButton.disabled = isBusy;
+            submitButton.textContent = isBusy ? "…" : "↑";
+            submitButton.classList.toggle("is-busy", isBusy);
+            submitButton.setAttribute("aria-label", isBusy ? "研究中" : "发送");
+            cancelButton.hidden = !isBusy;
+            questionInput.disabled = isBusy;
+        }
+
+        function renderThreadList() {
+            threadList.replaceChildren();
+
+            for (const [id, thread] of threads) {
+                const item = document.createElement("button");
+                item.className = "thread-item";
+                item.type = "button";
+                item.textContent = thread.title;
+
+                if (id === threadId) {
+                    item.classList.add("is-active");
+                }
+
+                item.addEventListener("click", () => {
+                    switchThread(id);
+                });
+
+                item.addEventListener("contextmenu", (event) => {
+                    event.preventDefault();
+                    openThreadContextMenu(
+                        id,
+                        event.clientX,
+                        event.clientY,
+                    );
+                });
+
+                item.addEventListener("keydown", (event) => {
+                    const isContextMenuKey = (
+                        event.key === "ContextMenu" ||
+                        (event.key === "F10" && event.shiftKey)
+                    );
+
+                    if (!isContextMenuKey) {
+                        return;
+                    }
+
+                    event.preventDefault();
+                    const rect = item.getBoundingClientRect();
+                    openThreadContextMenu(
+                        id,
+                        rect.left,
+                        rect.bottom,
+                    );
+                });
+
+                threadList.append(item);
+            }
+        }
+
+        function closeThreadContextMenu() {
+            if (!threadContextMenu) {
+                return;
+            }
+
+            threadContextMenu.hidden = true;
+            contextThreadId = null;
+        }
+
+        function openThreadContextMenu(id, x, y) {
+            if (
+                controller ||
+                !threadContextMenu ||
+                !threads.has(id)
+            ) {
+                return;
+            }
+
+            contextThreadId = id;
+            threadContextMenu.hidden = false;
+            threadContextMenu.style.left = `${Math.max(8, x)}px`;
+            threadContextMenu.style.top = `${Math.max(8, y)}px`;
+
+            const rect = threadContextMenu.getBoundingClientRect();
+            const left = Math.min(
+                Math.max(8, x),
+                Math.max(8, window.innerWidth - rect.width - 8),
+            );
+            const top = Math.min(
+                Math.max(8, y),
+                Math.max(8, window.innerHeight - rect.height - 8),
+            );
+
+            threadContextMenu.style.left = `${left}px`;
+            threadContextMenu.style.top = `${top}px`;
+            threadContextMenu
+                .querySelector("[data-thread-action='rename']")
+                ?.focus();
+        }
+
+        function openThreadRenameDialog(id) {
+            const thread = threads.get(id);
+
+            if (
+                !threadRenameDialog ||
+                !threadRenameInput ||
+                !thread
+            ) {
+                return;
+            }
+
+            renameThreadId = id;
+            threadRenameInput.value = thread.title || "";
+            threadRenameError.textContent = "";
+            closeThreadContextMenu();
+
+            if (typeof threadRenameDialog.showModal === "function") {
+                threadRenameDialog.showModal();
+            } else {
+                threadRenameDialog.setAttribute("open", "");
+            }
+
+            threadRenameInput.focus();
+            threadRenameInput.select();
+        }
+
+        function closeThreadRenameDialog() {
+            if (!threadRenameDialog) {
+                return;
+            }
+
+            if (typeof threadRenameDialog.close === "function") {
+                threadRenameDialog.close();
+            } else {
+                threadRenameDialog.removeAttribute("open");
+            }
+
+            renameThreadId = null;
+            if (threadRenameError) {
+                threadRenameError.textContent = "";
+            }
+        }
+
+        async function submitThreadRename(event) {
+            event.preventDefault();
+
+            if (
+                !renameThreadId ||
+                !threadRenameInput ||
+                !threadRenameSubmit
+            ) {
+                return;
+            }
+
+            const title = threadRenameInput.value.trim();
+
+            if (!title) {
+                threadRenameError.textContent = "请输入会话名称";
+                threadRenameInput.focus();
+                return;
+            }
+
+            if (title.length > 80) {
+                threadRenameError.textContent = "会话名称不能超过 80 个字符";
+                threadRenameInput.focus();
+                return;
+            }
+
+            const targetId = renameThreadId;
+            threadRenameSubmit.disabled = true;
+            threadRenameError.textContent = "";
+
+            try {
+                const response = await fetch(
+                    `/threads/${encodeURIComponent(targetId)}`,
+                    {
+                        method: "PATCH",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Accept: "application/json",
+                        },
+                        body: JSON.stringify({ title }),
+                    },
+                );
+
+                if (!response.ok) {
+                    throw new Error("thread rename failed");
+                }
+
+                const payload = await response.json();
+                const savedTitle = (
+                    typeof payload.title === "string" &&
+                    payload.title.trim()
+                        ? payload.title.trim().slice(0, 80)
+                        : title
+                );
+                const thread = threads.get(targetId);
+
+                if (thread) {
+                    thread.title = savedTitle;
+                    thread.updated_at = new Date().toISOString();
+                }
+
+                persistThreadIndex();
+                renderThreadList();
+                closeThreadRenameDialog();
+                status.textContent = "会话名称已更新";
+            } catch {
+                threadRenameError.textContent = "重命名失败，请稍后重试";
+            } finally {
+                threadRenameSubmit.disabled = false;
+            }
+        }
+
+        async function deleteThread(id) {
+            const thread = threads.get(id);
+
+            if (!thread || controller) {
+                return;
+            }
+
+            if (!window.confirm(`确定删除“${thread.title}”吗？`)) {
+                return;
+            }
+
+            closeThreadContextMenu();
+
+            try {
+                const response = await fetch(
+                    `/threads/${encodeURIComponent(id)}`,
+                    { method: "DELETE" },
+                );
+
+                if (!response.ok && response.status !== 404) {
+                    throw new Error("thread delete failed");
+                }
+
+                const deletingCurrent = id === threadId;
+                threads.delete(id);
+
+                if (deletingCurrent) {
+                    threadRestoreRequest += 1;
+                    const nextThreadId = threads.keys().next().value;
+
+                    if (typeof nextThreadId === "string") {
+                        threadId = nextThreadId;
+                        currentThreadSummary = null;
+                        questionInput.value = "";
+                        resetConversationView();
+                        persistThreadIndex();
+                        renderThreadList();
+                        void restoreThreadView(nextThreadId);
+                    } else {
+                        startNewThread();
+                    }
+                } else {
+                    persistThreadIndex();
+                    renderThreadList();
+                }
+
+                status.textContent = "会话已删除";
+            } catch {
+                status.textContent = "删除失败，请稍后重试";
+            }
+        }
+
+        function resetConversationView() {
+            conversation.replaceChildren();
+
+            conversationEmpty = document.createElement("div");
+            conversationEmpty.id = "conversation-empty";
+            conversationEmpty.className = "conversation-empty";
+            conversationEmpty.textContent =
+                "输入问题后，对话会显示在这里。";
+            conversation.append(conversationEmpty);
+
+            answer = null;
+            tracePanel = null;
+            traceStatus = null;
+            traceList = null;
+            planPanel = null;
+            planStatus = null;
+            planList = null;
+            taskPanel = null;
+            taskStatus = null;
+            taskList = null;
+            memoryNotice = null;
+            activeTasks.clear();
+        }
+
+        function renderMarkdownInto(target, markdown) {
+            if (
+                typeof marked === "undefined" ||
+                typeof DOMPurify === "undefined"
+            ) {
+                target.textContent = markdown;
+                return;
+            }
+
+            try {
+                const html = marked.parse(markdown, {
+                    gfm: true,
+                    breaks: false,
+                });
+
+                target.innerHTML = DOMPurify.sanitize(html, {
+                    USE_PROFILES: { html: true },
+                });
+
+                for (const link of target.querySelectorAll("a")) {
+                    link.target = "_blank";
+                    link.rel = "noopener noreferrer";
+                }
+            } catch {
+                target.textContent = markdown;
+            }
+        }
+
+        function createRestoredPlanPanel(todos) {
+            if (!Array.isArray(todos) || todos.length === 0) {
+                return null;
+            }
+
+            const labels = {
+                pending: "待处理",
+                in_progress: "进行中",
+                completed: "已完成",
+            };
+
+            const panel = document.createElement("section");
+            panel.className = "plan-panel";
+            panel.setAttribute("aria-label", "研究计划");
+
+            const heading = document.createElement("div");
+            heading.className = "plan-heading";
+
+            const title = document.createElement("h3");
+            title.textContent = "研究计划";
+
+            const status = document.createElement("span");
+            status.className = "plan-status";
+
+            const list = document.createElement("ol");
+            list.className = "plan-list";
+
+            let completedCount = 0;
+
+            for (const todo of todos) {
+                if (
+                    !todo ||
+                    typeof todo.content !== "string" ||
+                    typeof todo.status !== "string"
+                ) {
+                    continue;
+                }
+
+                const item = document.createElement("li");
+                item.className = "plan-item";
+                item.dataset.status = todo.status;
+
+                const content = document.createElement("span");
+                content.textContent = todo.content;
+
+                const itemStatus = document.createElement("span");
+                itemStatus.className = "plan-item-status";
+                itemStatus.textContent =
+                    labels[todo.status] || "未知";
+
+                item.append(content, itemStatus);
+                list.append(item);
+
+                if (todo.status === "completed") {
+                    completedCount += 1;
+                }
+            }
+
+            if (list.children.length === 0) {
+                return null;
+            }
+
+            status.textContent =
+                completedCount === list.children.length
+                    ? `已完成 ${completedCount}/${list.children.length}`
+                    : `进行中 ${completedCount}/${list.children.length}`;
+
+            heading.append(title, status);
+            panel.append(heading, list);
+            return panel;
+        }
+
+        function createRestoredTaskPanel(tasks) {
+            if (!Array.isArray(tasks)) {
+                return null;
+            }
+
+            const terminalTasks = tasks.filter(
+                (task) => (
+                    task &&
+                    typeof task === "object" &&
+                    typeof task.task_id === "string" &&
+                    typeof task.status === "string" &&
+                    ["completed", "failed", "cancelled"].includes(
+                        task.status,
+                    )
+                ),
+            );
+
+            if (terminalTasks.length === 0) {
+                return null;
+            }
+
+            const labels = {
+                completed: "已完成",
+                failed: "失败",
+                cancelled: "已取消",
+            };
+            const panel = document.createElement("section");
+            panel.className = "task-panel";
+            panel.setAttribute("aria-label", "研究任务");
+
+            const heading = document.createElement("div");
+            heading.className = "task-heading";
+
+            const title = document.createElement("h3");
+            title.textContent = "研究任务";
+
+            const status = document.createElement("span");
+            status.className = "task-status";
+            const completedCount = terminalTasks.filter(
+                (task) => task.status === "completed",
+            ).length;
+            status.textContent = `已结束 ${completedCount}/${terminalTasks.length}`;
+            heading.append(title, status);
+
+            const list = document.createElement("ul");
+            list.className = "task-list";
+
+            for (const task of terminalTasks) {
+                const item = document.createElement("li");
+                item.className = "task-item";
+                item.dataset.status = task.status;
+
+                const copy = document.createElement("div");
+                copy.className = "task-copy";
+
+                const owner = document.createElement("div");
+                owner.className = "task-owner";
+                owner.textContent = (
+                    task.agent_name === "researcher"
+                        ? "Researcher"
+                        : String(task.agent_name || "unknown")
+                );
+
+                const description = document.createElement("div");
+                description.className = "task-description";
+                description.textContent = String(task.description || "");
+                copy.append(owner, description);
+
+                if (task.status === "failed") {
+                    const error = document.createElement("div");
+                    error.className = "task-error";
+                    error.textContent = "研究任务失败";
+                    copy.append(error);
+                }
+
+                const itemStatus = document.createElement("span");
+                itemStatus.className = "task-item-status";
+                itemStatus.textContent = labels[task.status] || "未知";
+
+                item.append(copy, itemStatus);
+                list.append(item);
+            }
+
+            panel.append(heading, list);
+            return panel;
+        }
+
+        function createArtifactPanel(artifacts, id) {
+            if (!Array.isArray(artifacts) || artifacts.length === 0) {
+                return null;
+            }
+
+            const panel = document.createElement("section");
+            panel.className = "artifact-panel";
+            panel.setAttribute("aria-label", "已保存文件");
+
+            const heading = document.createElement("h3");
+            heading.className = "artifact-heading";
+            heading.textContent = "已保存文件";
+
+            const list = document.createElement("ul");
+            list.className = "artifact-list";
+
+            for (const artifact of artifacts) {
+                if (
+                    !artifact ||
+                    typeof artifact !== "object" ||
+                    !/^[0-9a-f]{32}$/i.test(
+                        artifact.artifact_id || "",
+                    ) ||
+                    typeof artifact.filename !== "string"
+                ) {
+                    continue;
+                }
+
+                const rawUrl =
+                    typeof artifact.download_url === "string" &&
+                    artifact.download_url
+                        ? artifact.download_url
+                        : `/artifacts/${encodeURIComponent(id)}/${artifact.artifact_id}`;
+
+                let safeUrl;
+
+                try {
+                    safeUrl = new URL(
+                        rawUrl,
+                        window.location.origin,
+                    );
+                } catch {
+                    continue;
+                }
+
+                if (safeUrl.origin !== window.location.origin) {
+                    continue;
+                }
+
+                const link = document.createElement("a");
+                link.className = "artifact-link";
+                link.href = `${safeUrl.pathname}${safeUrl.search}`;
+                link.download = artifact.filename;
+                link.textContent = artifact.filename;
+                link.setAttribute(
+                    "aria-label",
+                    `下载 ${artifact.filename}`,
+                );
+
+                const item = document.createElement("li");
+                item.append(link);
+                list.append(item);
+            }
+
+            if (list.children.length === 0) {
+                return null;
+            }
+
+            panel.append(heading, list);
+            return panel;
+        }
+
+        function renderThreadSnapshot(snapshot, id) {
+            const messages = Array.isArray(snapshot.messages)
+                ? snapshot.messages
+                : [];
+
+            if (messages.length === 0) {
+                throw new Error("Thread snapshot has no messages");
+            }
+
+            conversation.replaceChildren();
+            conversationEmpty = null;
+
+            const validMessages = messages.filter(
+                (message) =>
+                    message &&
+                    (message.role === "user" ||
+                        message.role === "assistant") &&
+                    typeof message.content === "string" &&
+                    message.content,
+            );
+
+            let latestAssistant = null;
+
+            for (const message of validMessages) {
+                const turn = document.createElement("article");
+                turn.className = "conversation-turn";
+
+                const messageElement = document.createElement("div");
+                messageElement.className =
+                    `chat-message ${message.role}`;
+
+                const label = document.createElement("div");
+                label.className = "chat-label";
+                label.textContent =
+                    message.role === "user" ? "你" : "研究助手";
+
+                const content = document.createElement("div");
+                content.className = "chat-content";
+
+                if (message.role === "assistant") {
+                    content.className = "answer-content";
+                    content.setAttribute("role", "region");
+                    content.setAttribute("aria-label", "研究回答");
+                    renderMarkdownInto(content, message.content);
+                    latestAssistant = messageElement;
+                } else {
+                    content.textContent = message.content;
+                }
+
+                messageElement.append(label, content);
+                turn.append(messageElement);
+                conversation.append(turn);
+            }
+
+            if (!latestAssistant) {
+                throw new Error(
+                    "Thread snapshot has no assistant message",
+                );
+            }
+
+            const plan = createRestoredPlanPanel(snapshot.todos);
+            if (plan) {
+                latestAssistant.append(plan);
+            }
+
+            const tasks = createRestoredTaskPanel(snapshot.tasks);
+            if (tasks) {
+                latestAssistant.append(tasks);
+            }
+
+            const artifacts = createArtifactPanel(
+                snapshot.artifacts,
+                id,
+            );
+            if (artifacts) {
+                latestAssistant.append(artifacts);
+            }
+
+            answer = latestAssistant.querySelector(
+                ".answer-content",
+            );
+            planPanel = latestAssistant.querySelector(
+                ".plan-panel",
+            );
+            planStatus = latestAssistant.querySelector(
+                ".plan-status",
+            );
+            planList = latestAssistant.querySelector(
+                ".plan-list",
+            );
+            taskPanel = null;
+            taskStatus = null;
+            taskList = null;
+            memoryNotice = null;
+            activeTasks.clear();
+            tracePanel = null;
+            traceStatus = null;
+            traceList = null;
+        }
+
+        function replaceRestoredArtifactPanel(artifacts, id) {
+            const latestAssistant = conversation.querySelector(
+                ".conversation-turn:last-child .chat-message.assistant",
+            );
+
+            if (!latestAssistant) {
+                return;
+            }
+
+            latestAssistant
+                .querySelector(".artifact-panel")
+                ?.remove();
+
+            const panel = createArtifactPanel(
+                artifacts,
+                id,
+            );
+
+            if (panel) {
+                latestAssistant.append(panel);
+            }
+        }
+
+        async function restoreArtifactList(
+            id,
+            requestId,
+        ) {
+            try {
+                const response = await fetch(
+                    `/threads/${encodeURIComponent(id)}/artifacts`,
+                    {
+                        headers: {
+                            Accept: "application/json",
+                        },
+                    },
+                );
+
+                if (
+                    requestId !== threadRestoreRequest ||
+                    !response.ok
+                ) {
+                    return;
+                }
+
+                const payload = await response.json();
+
+                if (!Array.isArray(payload.artifacts)) {
+                    return;
+                }
+
+                replaceRestoredArtifactPanel(
+                    payload.artifacts,
+                    id,
+                );
+            } catch {
+                // The thread snapshot remains usable if the optional list
+                // request fails.
+            }
+        }
+
+        function renderSettingsSummary() {
+            if (!settingsSummary) {
+                return;
+            }
+
+            settingsSummary.textContent = (
+                currentThreadSummary ||
+                "当前会话尚未进行上下文整理。"
+            );
+        }
+
+        async function openThreadSettings() {
+            if (!settingsDialog || !settingsSummary) {
+                return;
+            }
+
+            if (typeof settingsDialog.showModal === "function") {
+                settingsDialog.showModal();
+            } else {
+                settingsDialog.setAttribute("open", "");
+            }
+
+            settingsSummary.textContent = "正在读取当前会话摘要...";
+
+            try {
+                const response = await fetch(
+                    `/threads/${encodeURIComponent(threadId)}`,
+                    {
+                        headers: {
+                            Accept: "application/json",
+                        },
+                    },
+                );
+
+                if (!response.ok) {
+                    currentThreadSummary = null;
+                    renderSettingsSummary();
+                    return;
+                }
+
+                const snapshot = await response.json();
+                currentThreadSummary = (
+                    typeof snapshot.summary === "string" &&
+                    snapshot.summary.trim()
+                        ? snapshot.summary
+                        : null
+                );
+                renderSettingsSummary();
+            } catch {
+                currentThreadSummary = null;
+                renderSettingsSummary();
+            }
+        }
+
+        async function restoreThreadView(id) {
+            const requestId = ++threadRestoreRequest;
+            resetConversationView();
+            currentThreadSummary = null;
+            status.textContent = "恢复对话";
+
+            try {
+                const response = await fetch(
+                    `/threads/${encodeURIComponent(id)}`,
+                    {
+                        headers: {
+                            Accept: "application/json",
+                        },
+                    },
+                );
+
+                if (requestId !== threadRestoreRequest) {
+                    return;
+                }
+
+                if (response.status === 404) {
+                    status.textContent = "就绪";
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error("Thread snapshot request failed");
+                }
+
+                const snapshot = await response.json();
+                currentThreadSummary = (
+                    typeof snapshot.summary === "string" &&
+                    snapshot.summary.trim()
+                        ? snapshot.summary
+                        : null
+                );
+                renderThreadSnapshot(snapshot, id);
+                await restoreArtifactList(
+                    id,
+                    requestId,
+                );
+
+                const currentThread = threads.get(id);
+                if (
+                    currentThread &&
+                    typeof snapshot.title === "string" &&
+                    snapshot.title.trim()
+                ) {
+                    currentThread.title = snapshot.title
+                        .trim()
+                        .slice(0, 80);
+                    persistThreadIndex();
+                    renderThreadList();
+                }
+
+                status.textContent = "就绪";
+            } catch {
+                if (requestId !== threadRestoreRequest) {
+                    return;
+                }
+
+                resetConversationView();
+                conversationEmpty.textContent =
+                    "对话恢复失败，请稍后重试。";
+                status.textContent = "恢复失败";
+            }
+        }
+
+        function switchThread(id) {
+            if (controller || id === threadId) {
+                return;
+            }
+
+            threadId = id;
+            persistThreadIndex();
+            questionInput.value = "";
+            renderThreadList();
+            void restoreThreadView(id);
+        }
+
+        function startNewThread() {
+            if (controller) {
+                return;
+            }
+
+            threadRestoreRequest += 1;
+            threadId = createThreadId();
+            currentThreadSummary = null;
+            threads.set(threadId, {
+                title: "新对话",
+                updated_at: new Date().toISOString(),
+            });
+            persistThreadIndex();
+            resetConversationView();
+            questionInput.value = "";
+            status.textContent = "就绪";
+            renderThreadList();
+            questionInput.focus();
+        }
+
+        function appendConversationTurn(question) {
+            if (conversationEmpty) {
+                conversationEmpty.hidden = true;
+            }
+
+            const turn = document.createElement("article");
+            turn.className = "conversation-turn";
+
+            const userMessage = document.createElement("div");
+            userMessage.className = "chat-message user";
+
+            const userLabel = document.createElement("div");
+            userLabel.className = "chat-label";
+            userLabel.textContent = "你";
+
+            const userContent = document.createElement("div");
+            userContent.className = "chat-content";
+            userContent.textContent = question;
+            userMessage.append(userLabel, userContent);
+
+            const assistantMessage = document.createElement("div");
+            assistantMessage.className = "chat-message assistant";
+
+            const assistantLabel = document.createElement("div");
+            assistantLabel.className = "chat-label";
+            assistantLabel.textContent = "研究助手";
+
+            planPanel = document.createElement("section");
+            planPanel.className = "plan-panel";
+            planPanel.hidden = true;
+            planPanel.setAttribute("aria-label", "研究计划");
+
+            const planHeading = document.createElement("div");
+            planHeading.className = "plan-heading";
+
+            const planTitle = document.createElement("h3");
+            planTitle.textContent = "研究计划";
+
+            planStatus = document.createElement("span");
+            planStatus.className = "plan-status";
+            planStatus.textContent = "等待中";
+
+            planHeading.append(planTitle, planStatus);
+
+            planList = document.createElement("ol");
+            planList.className = "plan-list";
+            planList.setAttribute("aria-live", "polite");
+            planPanel.append(planHeading, planList);
+
+            taskPanel = document.createElement("section");
+            taskPanel.className = "task-panel";
+            taskPanel.hidden = true;
+            taskPanel.setAttribute("aria-label", "研究任务");
+
+            const taskHeading = document.createElement("div");
+            taskHeading.className = "task-heading";
+
+            const taskTitle = document.createElement("h3");
+            taskTitle.textContent = "研究任务";
+
+            taskStatus = document.createElement("span");
+            taskStatus.className = "task-status";
+            taskStatus.textContent = "等待中";
+
+            taskHeading.append(taskTitle, taskStatus);
+
+            taskList = document.createElement("ul");
+            taskList.className = "task-list";
+            taskList.setAttribute("aria-live", "polite");
+
+            taskPanel.append(taskHeading, taskList);
+
+            memoryNotice = document.createElement("div");
+            memoryNotice.className = "memory-notice";
+            memoryNotice.hidden = true;
+            memoryNotice.setAttribute("role", "status");
+            memoryNotice.setAttribute("aria-live", "polite");
+
+            tracePanel = document.createElement("details");
+            tracePanel.className = "trace-panel";
+            tracePanel.hidden = true;
+
+            const traceSummary = document.createElement("summary");
+            const traceTitle = document.createElement("span");
+            traceTitle.textContent = "研究过程";
+
+            traceStatus = document.createElement("span");
+            traceStatus.className = "trace-status";
+            traceStatus.textContent = "等待中";
+
+            traceSummary.append(traceTitle, traceStatus);
+
+            traceList = document.createElement("div");
+            traceList.className = "trace-list";
+            traceList.setAttribute("role", "log");
+            traceList.setAttribute("aria-live", "polite");
+            traceList.setAttribute(
+                "aria-label",
+                "研究工具调用记录",
+            );
+
+            tracePanel.append(traceSummary, traceList);
+
+            answer = document.createElement("div");
+            answer.className = "answer-content is-streaming";
+            answer.setAttribute("role", "region");
+            answer.setAttribute("aria-label", "研究回答");
+            answer.textContent = "研究中...";
+
+            assistantMessage.append(
+                assistantLabel,
+                planPanel,
+                taskPanel,
+                memoryNotice,
+                tracePanel,
+                answer,
+            );
+            turn.append(userMessage, assistantMessage);
+            conversation.append(turn);
+            conversation.scrollTop = conversation.scrollHeight;
+        }
+
+        function persistSuccessfulThread(question) {
+            const currentThread = threads.get(threadId);
+
+            if (!currentThread) {
+                return;
+            }
+
+            if (currentThread.title === "新对话") {
+                currentThread.title = question
+                    .trim()
+                    .slice(0, 80);
+            }
+
+            currentThread.updated_at =
+                new Date().toISOString();
+
+            persistThreadIndex();
+            renderThreadList();
+        }
+
+        function renderMarkdown(markdown) {
+            renderMarkdownInto(answer, markdown);
+        }
+
+        function renderArtifactSaved(event) {
+            if (!event.filename || !event.download_url) {
+                return;
+            }
+
+            const assistantMessage = conversation.querySelector(
+                ".conversation-turn:last-child .chat-message.assistant",
+            );
+
+            if (!assistantMessage) {
+                return;
+            }
+
+            let artifactPanel = assistantMessage.querySelector(
+                ".artifact-panel",
+            );
+
+            if (!artifactPanel) {
+                artifactPanel = document.createElement("section");
+                artifactPanel.className = "artifact-panel";
+                artifactPanel.setAttribute(
+                    "aria-label",
+                    "已保存文件",
+                );
+
+                const heading = document.createElement("h3");
+                heading.className = "artifact-heading";
+                heading.textContent = "已保存文件";
+
+                const list = document.createElement("ul");
+                list.className = "artifact-list";
+
+                artifactPanel.append(heading, list);
+                assistantMessage.append(artifactPanel);
+            }
+
+            const safeUrl = new URL(
+                event.download_url,
+                window.location.origin,
+            );
+
+            if (safeUrl.origin !== window.location.origin) {
+                return;
+            }
+
+            const link = document.createElement("a");
+            link.className = "artifact-link";
+            link.href = `${safeUrl.pathname}${safeUrl.search}`;
+            link.download = event.filename;
+            link.textContent = event.filename;
+            link.setAttribute(
+                "aria-label",
+                `下载 ${event.filename}`,
+            );
+
+            const item = document.createElement("li");
+            item.append(link);
+            artifactPanel.querySelector(
+                ".artifact-list",
+            ).append(item);
+        }
+
+        function resetTrace() {
+            if (!traceList || !tracePanel || !traceStatus) {
+                return;
+            }
+
+            traceList.replaceChildren();
+            tracePanel.hidden = false;
+            tracePanel.open = true;
+            traceStatus.textContent = "进行中";
+        }
+
+        function addTraceItem(text, state = "") {
+            if (!traceList) {
+                return;
+            }
+
+            const item = document.createElement("div");
+            item.className = `trace-item ${state}`;
+            item.textContent = text;
+            traceList.append(item);
+            traceList.scrollTop = traceList.scrollHeight;
+        }
+
+        function resetPlan() {
+            if (!planList || !planPanel || !planStatus) {
+                return;
+            }
+
+            planList.replaceChildren();
+            planPanel.hidden = true;
+            planStatus.textContent = "等待中";
+        }
+
+        function resetTasks() {
+            activeTasks.clear();
+
+            if (!taskPanel || !taskStatus || !taskList) {
+                return;
+            }
+
+            taskList.replaceChildren();
+            taskPanel.hidden = true;
+            taskStatus.textContent = "等待中";
+        }
+
+        function resetMemoryNotice() {
+            if (!memoryNotice) {
+                return;
+            }
+
+            memoryNotice.hidden = true;
+            memoryNotice.textContent = "";
+        }
+
+        function showMemoryCompactedNotice() {
+            if (!memoryNotice) {
+                return;
+            }
+
+            memoryNotice.hidden = false;
+            memoryNotice.textContent = "当前会话已进行一次上下文整理。";
+        }
+
+        function renderResearchTasks() {
+            if (!taskPanel || !taskStatus || !taskList) {
+                return;
+            }
+
+            const labels = {
+                running: "进行中",
+                completed: "已完成",
+                failed: "失败",
+                cancelled: "已取消",
+            };
+            const tasks = Array.from(activeTasks.values());
+            const completedCount = tasks.filter(
+                (task) => task.status === "completed",
+            ).length;
+            const failedCount = tasks.filter(
+                (task) => task.status === "failed",
+            ).length;
+            const cancelledCount = tasks.filter(
+                (task) => task.status === "cancelled",
+            ).length;
+
+            taskList.replaceChildren();
+            taskPanel.hidden = tasks.length === 0;
+
+            for (const task of tasks) {
+                const item = document.createElement("li");
+                item.className = "task-item";
+                item.dataset.status = task.status;
+
+                const copy = document.createElement("div");
+                copy.className = "task-copy";
+
+                const owner = document.createElement("div");
+                owner.className = "task-owner";
+                owner.textContent = (
+                    task.agent_name === "researcher"
+                        ? "Researcher"
+                        : task.agent_name
+                );
+
+                const description = document.createElement("div");
+                description.className = "task-description";
+                description.textContent = task.description;
+
+                copy.append(owner, description);
+
+                if (task.status === "failed") {
+                    const error = document.createElement("div");
+                    error.className = "task-error";
+                    error.textContent = "研究任务失败";
+                    copy.append(error);
+                }
+
+                const status = document.createElement("span");
+                status.className = "task-item-status";
+                status.textContent = labels[task.status] || "未知";
+
+                item.append(copy, status);
+                taskList.append(item);
+            }
+
+            if (tasks.length === 0) {
+                taskStatus.textContent = "等待中";
+            } else if (tasks.some((task) => task.status === "running")) {
+                taskStatus.textContent = `进行中 ${tasks.length} 项`;
+            } else if (failedCount > 0) {
+                taskStatus.textContent = `失败 ${failedCount}/${tasks.length}`;
+            } else if (cancelledCount > 0) {
+                taskStatus.textContent = `已取消 ${cancelledCount}/${tasks.length}`;
+            } else {
+                taskStatus.textContent = `已完成 ${completedCount}/${tasks.length}`;
+            }
+        }
+
+        function markRunningTasksCancelled() {
+            for (const [taskId, task] of activeTasks.entries()) {
+                if (task.status !== "running") {
+                    continue;
+                }
+
+                activeTasks.set(taskId, {
+                    ...task,
+                    status: "cancelled",
+                    error: "",
+                });
+            }
+
+            renderResearchTasks();
+        }
+
+        function updateResearchTask(event) {
+            if (
+                !event ||
+                typeof event.task_id !== "string" ||
+                !event.task_id
+            ) {
+                return;
+            }
+
+            const previous = activeTasks.get(event.task_id) || {};
+            const terminalStatuses = new Set([
+                "completed",
+                "failed",
+                "cancelled",
+            ]);
+            const incomingStatus = (
+                typeof event.status === "string" &&
+                ["running", "completed", "failed", "cancelled"]
+                    .includes(event.status)
+                    ? event.status
+                    : previous.status || "running"
+            );
+            const status = (
+                terminalStatuses.has(previous.status)
+                    ? previous.status
+                    : cancellationRequested && incomingStatus === "running"
+                        ? "cancelled"
+                    : incomingStatus
+            );
+
+            activeTasks.set(event.task_id, {
+                agent_name: (
+                    typeof event.agent_name === "string"
+                        ? event.agent_name
+                        : previous.agent_name || "researcher"
+                ),
+                description: (
+                    typeof event.description === "string"
+                        ? event.description
+                        : previous.description || ""
+                ),
+                status,
+                finding_ids: (
+                    Array.isArray(event.finding_ids)
+                        ? event.finding_ids
+                        : previous.finding_ids || []
+                ),
+                source_ids: (
+                    Array.isArray(event.source_ids)
+                        ? event.source_ids
+                        : previous.source_ids || []
+                ),
+                error: (
+                    status === "cancelled"
+                        ? ""
+                        : typeof event.error === "string"
+                            ? event.error
+                            : previous.error || ""
+                ),
+            });
+
+            renderResearchTasks();
+        }
+
+        function renderPlan(todos) {
+            if (!Array.isArray(todos)) {
+                return;
+            }
+
+            planList.replaceChildren();
+            planPanel.hidden = false;
+
+            const labels = {
+                pending: "待处理",
+                in_progress: "进行中",
+                completed: "已完成",
+            };
+
+            let completedCount = 0;
+
+            for (const todo of todos) {
+                if (
+                    !todo ||
+                    typeof todo.content !== "string" ||
+                    typeof todo.status !== "string"
+                ) {
+                    continue;
+                }
+
+                const item = document.createElement("li");
+                item.className = "plan-item";
+                item.dataset.status = todo.status;
+
+                const content = document.createElement("span");
+                content.textContent = todo.content;
+
+                const itemStatus = document.createElement("span");
+                itemStatus.className = "plan-item-status";
+                itemStatus.textContent =
+                    labels[todo.status] || "未知";
+
+                item.append(content, itemStatus);
+                planList.append(item);
+
+                if (todo.status === "completed") {
+                    completedCount += 1;
+                }
+            }
+
+            if (todos.length > 0 && completedCount === todos.length) {
+                planStatus.textContent =
+                    `已完成 ${completedCount}/${todos.length}`;
+            } else {
+                planStatus.textContent =
+                    `进行中 ${completedCount}/${todos.length}`;
+            }
+        }
+
+        function formatToolStart(event) {
+            const name = event.name || "unknown_tool";
+            const input = event.input || {};
+
+            if (name === "web_search") {
+                return `开始 web_search - 查询：${input.query || ""}`;
+            }
+
+            if (name === "read_page") {
+                return `开始 read_page - source_id：${input.source_id || ""}`;
+            }
+
+            if (name === "assess_research") {
+                return `开始 assess_research - 下一步：${input.next_action || ""}`;
+            }
+
+            if (name === "write_todos") {
+                return "更新研究计划";
+            }
+
+            return `开始 ${name}`;
+        }
+
+        newThreadButton.addEventListener(
+            "click",
+            startNewThread,
+        );
+
+        threadContextMenu?.addEventListener(
+            "click",
+            (event) => {
+                const button = event.target.closest(
+                    "[data-thread-action]",
+                );
+
+                if (!button || !contextThreadId) {
+                    return;
+                }
+
+                const action = button.dataset.threadAction;
+                const targetId = contextThreadId;
+                closeThreadContextMenu();
+
+                if (action === "rename") {
+                    openThreadRenameDialog(targetId);
+                } else if (action === "delete") {
+                    void deleteThread(targetId);
+                }
+            },
+        );
+
+        threadRenameForm?.addEventListener(
+            "submit",
+            (event) => {
+                void submitThreadRename(event);
+            },
+        );
+
+        threadRenameCancel?.addEventListener(
+            "click",
+            closeThreadRenameDialog,
+        );
+
+        document.addEventListener("pointerdown", (event) => {
+            if (
+                threadContextMenu?.hidden === false &&
+                !threadContextMenu.contains(event.target)
+            ) {
+                closeThreadContextMenu();
+            }
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+                closeThreadContextMenu();
+            }
+        });
+
+        knowledgeOpenButton.addEventListener(
+            "click",
+            openKnowledgeDialog,
+        );
+
+        memoryOpenButton?.addEventListener(
+            "click",
+            openMemoryDialog,
+        );
+
+        memoryCloseButton?.addEventListener(
+            "click",
+            closeMemoryDialog,
+        );
+
+        memorySearchButton?.addEventListener(
+            "click",
+            () => {
+                memoryPage = 1;
+                void loadMemories();
+            },
+        );
+
+        memorySearchInput?.addEventListener(
+            "keydown",
+            (event) => {
+                if (event.key !== "Enter") {
+                    return;
+                }
+
+                event.preventDefault();
+                memoryPage = 1;
+                void loadMemories();
+            },
+        );
+
+        memoryTabs?.addEventListener(
+            "click",
+            (event) => {
+                const button = event.target.closest("[data-kind]");
+
+                if (!button) {
+                    return;
+                }
+
+                memoryKind = button.dataset.kind || "";
+                memoryPage = 1;
+
+                for (const tab of memoryTabs.querySelectorAll("[data-kind]")) {
+                    tab.classList.toggle("is-active", tab === button);
+                }
+
+                void loadMemories();
+            },
+        );
+
+        memoryPrevButton?.addEventListener(
+            "click",
+            () => {
+                if (memoryPage <= 1) {
+                    return;
+                }
+
+                memoryPage -= 1;
+                void loadMemories();
+            },
+        );
+
+        memoryNextButton?.addEventListener(
+            "click",
+            () => {
+                if (memoryNextButton.disabled) {
+                    return;
+                }
+
+                memoryPage += 1;
+                void loadMemories();
+            },
+        );
+
+        memoryClearButton?.addEventListener(
+            "click",
+            () => void clearMemories(),
+        );
+
+        memoryFormCancel?.addEventListener(
+            "click",
+            closeMemoryEditor,
+        );
+
+        memoryForm?.addEventListener(
+            "submit",
+            submitMemoryEdit,
+        );
+
+        knowledgeCloseButton.addEventListener(
+            "click",
+            closeKnowledgeDialog,
+        );
+
+        knowledgeFileInput.addEventListener("change", () => {
+            const file = knowledgeFileInput.files?.[0];
+            void uploadKnowledgeDocument(file);
+        });
+
+        knowledgeRefreshButton.addEventListener(
+            "click",
+            () => {
+                void loadKnowledgeDocuments();
+            },
+        );
+
+        threadSettingsButton.addEventListener(
+            "click",
+            () => {
+                void openThreadSettings();
+            },
+        );
+
+        settingsCloseButton.addEventListener("click", () => {
+            if (typeof settingsDialog.close === "function") {
+                settingsDialog.close();
+            } else {
+                settingsDialog.removeAttribute("open");
+            }
+        });
+
+        renderThreadList();
+        void restoreThreadView(threadId);
+        void loadKnowledgeDocuments();
+
+        for (const button of promptButtons) {
+            button.addEventListener("click", () => {
+                questionInput.value = button.dataset.prompt;
+                questionInput.focus();
+            });
+        }
+
+        questionInput.addEventListener("keydown", (event) => {
+            if (
+                event.key !== "Enter" ||
+                event.shiftKey ||
+                event.isComposing
+            ) {
+                return;
+            }
+
+            event.preventDefault();
+
+            if (
+                submitButton.disabled ||
+                controller
+            ) {
+                return;
+            }
+
+            form.requestSubmit();
+        });
+
+        cancelButton.addEventListener("click", () => {
+            if (!controller) {
+                return;
+            }
+
+            cancellationRequested = true;
+            markRunningTasksCancelled();
+            status.textContent = "正在停止";
+            traceStatus.textContent = "正在停止";
+            controller?.abort();
+        });
+
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const question = questionInput.value.trim();
+
+            if (!question) {
+                questionInput.focus();
+                return;
+            }
+
+            controller = new AbortController();
+            cancellationRequested = false;
+            setBusy(true);
+            status.textContent = "正在检索";
+            appendConversationTurn(question);
+            questionInput.value = "";
+            answer.textContent = "";
+            resetTrace();
+            resetPlan();
+            resetTasks();
+            resetMemoryNotice();
+
+            try {
+                const response = await fetch("/research/stream", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        question,
+                        thread_id: threadId,
+                    }),
+                    signal: controller.signal,
+                });
+
+                if (!response.ok || !response.body) {
+                    throw new Error("Research request failed");
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let fullText = "";
+                let pendingLine = "";
+                let researchSucceeded = false;
+
+                function consumeEventLine(line) {
+                    const trimmedLine = line.trim();
+
+                    if (!trimmedLine) {
+                        return;
+                    }
+
+                    let event;
+
+                    try {
+                        event = JSON.parse(trimmedLine);
+                    } catch {
+                        addTraceItem("无法解析服务器事件", "failed");
+                        return;
+                    }
+
+                    if (event.type === "plan_update") {
+                        renderPlan(event.todos);
+                        return;
+                    }
+
+                    if (
+                        event.type === "subagent_start" ||
+                        event.type === "subagent_end"
+                    ) {
+                        updateResearchTask(event);
+                        return;
+                    }
+
+                    if (event.type === "memory_compacted") {
+                        showMemoryCompactedNotice();
+                        return;
+                    }
+
+                    if (event.type === "text") {
+                        fullText += event.text || "";
+                        answer.textContent = fullText;
+                        answer.scrollTop = answer.scrollHeight;
+                        return;
+                    }
+
+                    if (event.type === "tool_start") {
+                        addTraceItem(formatToolStart(event), "running");
+                        return;
+                    }
+
+                    if (event.type === "tool_end") {
+                        const name = event.name || "unknown_tool";
+                        const failed = event.status === "failed";
+
+                        addTraceItem(
+                            `${failed ? "失败" : "完成"} ${name}`,
+                            failed ? "failed" : "completed",
+                        );
+                        return;
+                    }
+
+                    if (event.type === "artifact_saved") {
+                        renderArtifactSaved(event);
+                        return;
+                    }
+
+                    if (event.type === "error") {
+                        addTraceItem(
+                            "研究服务失败",
+                            "failed",
+                        );
+                        traceStatus.textContent = "失败";
+                        status.textContent = "请求失败";
+                        return;
+                    }
+
+                    if (event.type === "done") {
+                        if (cancellationRequested) {
+                            return;
+                        }
+
+                        researchSucceeded = true;
+                        traceStatus.textContent = "已完成";
+                    }
+
+                    if (event.type === "cancelled") {
+                        cancellationRequested = true;
+                        status.textContent = "已取消";
+                        traceStatus.textContent = "已取消";
+                    }
+                }
+
+                while (true) {
+                    const { value, done } = await reader.read();
+
+                    if (done) {
+                        break;
+                    }
+
+                    pendingLine += decoder.decode(value, { stream: true });
+
+                    const lines = pendingLine.split("\n");
+                    pendingLine = lines.pop() || "";
+
+                    for (const line of lines) {
+                        consumeEventLine(line);
+                    }
+                }
+
+                pendingLine += decoder.decode();
+
+                if (pendingLine.trim()) {
+                    consumeEventLine(pendingLine);
+                }
+
+                answer.classList.remove("is-streaming");
+                renderMarkdown(fullText);
+
+                if (
+                    researchSucceeded &&
+                    fullText.trim() &&
+                    traceStatus.textContent !== "失败"
+                ) {
+                    persistSuccessfulThread(question);
+                    status.textContent = "完成";
+                }
+            } catch (error) {
+                if (error.name === "AbortError") {
+                    cancellationRequested = true;
+                    status.textContent = "已取消";
+                    traceStatus.textContent = "已取消";
+                } else {
+                    status.textContent = "请求失败";
+                    traceStatus.textContent = "失败";
+                    answer.classList.remove("is-streaming");
+                    answer.textContent = "研究请求失败，请稍后重试。";
+                }
+            } finally {
+                setBusy(false);
+                controller = null;
+            }
+        });
+    </script>
+</body>
+</html>

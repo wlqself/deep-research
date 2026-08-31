@@ -1,0 +1,8 @@
+from .researcher import RESEARCHER_SYSTEM_PROMPT
+from .supervisor import SUPERVISOR_SYSTEM_PROMPT
+from .summary import SUMMARY_PROMPT
+from .todo import TODO_SYSTEM_PROMPT, TODO_TOOL_DESCRIPTION
+from .workspace import WORKSPACE_SYSTEM_PROMPT
+
+# 兼容旧代码
+SYSTEM_PROMPT = SUPERVISOR_SYSTEM_PROMPT
