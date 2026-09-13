@@ -20,7 +20,11 @@ def chunk_documents(
     document_hash: str,
     chunk_size: int,
     chunk_overlap: int,
+    parent_size: int = 4,
 ) -> list[Document]:
+    if parent_size <= 0:
+        raise ValueError("parent_size must be positive")
+
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
@@ -104,6 +108,7 @@ def chunk_documents(
                 "chunk_index": chunk_index,
                 "content_hash": content_hash,
                 "document_hash": document_hash,
+                "status": "pending",
                 "created_at": _utc_now(),
             }
 
@@ -113,5 +118,32 @@ def chunk_documents(
                     metadata=chunk_metadata,
                 )
             )
+
+    # Keep parent membership in metadata. The parent text is deliberately
+    # not copied into the embedding text; it is expanded only after a child
+    # has been retrieved.
+    by_document: dict[str, list[Document]] = {}
+    for chunk in chunks:
+        by_document.setdefault(
+            str(chunk.metadata["document_id"]),
+            [],
+        ).append(chunk)
+
+    for document_chunks in by_document.values():
+        for parent_start in range(0, len(document_chunks), parent_size):
+            parent_chunks = document_chunks[parent_start:parent_start + parent_size]
+            parent_index = parent_start // parent_size
+            parent_id = (
+                f"{parent_chunks[0].metadata['document_id']}"
+                f":parent:{parent_index}"
+            )
+            child_ids = [
+                str(chunk.metadata["chunk_id"])
+                for chunk in parent_chunks
+            ]
+            for chunk in parent_chunks:
+                chunk.metadata["parent_id"] = parent_id
+                chunk.metadata["parent_index"] = parent_index
+                chunk.metadata["parent_child_ids"] = child_ids
 
     return chunks

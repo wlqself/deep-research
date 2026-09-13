@@ -36,7 +36,7 @@ class FakeRagService:
         self.error = error
         self.calls: list[dict[str, object]] = []
 
-    def search_chunks(
+    def search_contexts(
         self,
         query: str,
         *,

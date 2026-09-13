@@ -13,6 +13,7 @@ from langchain.agents import create_agent
 from langchain_core.language_models.fake_chat_models import (
     GenericFakeChatModel,
 )
+from langchain_core.embeddings import Embeddings
 
 from deep_research.context import ResearchContext
 from deep_research.state import ResearchState
@@ -33,19 +34,107 @@ class FakeRagService:
         pass
 
 
-class AppLifespanTests(
-    unittest.IsolatedAsyncioTestCase
-):
-    def setUp(self) -> None:
+class FakeEmbeddings(Embeddings):
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        return [[0.0] * settings.embedding_dimensions for _ in texts]
+
+    def embed_query(self, text: str) -> list[float]:
+        return [0.0] * settings.embedding_dimensions
+
+
+class FakeMemoryExtractor:
+    def __init__(self, model) -> None:
+        self.model = model
+
+
+class _FailingNetworkClient:
+    def __init__(self, *args, **kwargs) -> None:
+        raise AssertionError("network access is forbidden in lifespan tests")
+
+
+class _LifespanIsolationMixin:
+    def _isolate_external_state(self) -> None:
+        self._settings_originals = {
+            "memory_db_path": settings.memory_db_path,
+            "rag_registry_db_path": settings.rag_registry_db_path,
+            "publishing_db_path": settings.publishing_db_path,
+            "hitl_db_path": settings.hitl_db_path,
+        }
+        self._external_tempdir = tempfile.TemporaryDirectory()
+        root = Path(self._external_tempdir.name)
+        settings.memory_db_path = str(root / "memory.sqlite")
+        settings.rag_registry_db_path = str(root / "registry.sqlite")
+        settings.publishing_db_path = str(root / "publishing.sqlite")
+        settings.hitl_db_path = str(root / "hitl.sqlite")
+        self.addCleanup(self._restore_external_state)
+
+    def _restore_external_state(self) -> None:
+        settings.memory_db_path = self._settings_originals["memory_db_path"]
+        settings.rag_registry_db_path = self._settings_originals[
+            "rag_registry_db_path"
+        ]
+        settings.publishing_db_path = self._settings_originals[
+            "publishing_db_path"
+        ]
+        settings.hitl_db_path = self._settings_originals["hitl_db_path"]
+        self._external_tempdir.cleanup()
+
+    def _patch_external_services(self) -> None:
         self.rag_service_patcher = patch.object(
             main_module,
             "build_rag_service",
             return_value=FakeRagService(),
         )
-        self.rag_service_patcher.start()
+        self.embedding_patcher = patch(
+            "deep_research.persistence.memory.create_embeddings",
+            return_value=FakeEmbeddings(),
+        )
+        self.extractor_patcher = patch.object(
+            main_module,
+            "MemoryExtractor",
+            FakeMemoryExtractor,
+        )
+        self.network_patcher = patch(
+            "deep_research.tools.web_search.TavilySearch",
+            _FailingNetworkClient,
+        )
+        self.http_patcher = patch(
+            "deep_research.tools.read_page.httpx.AsyncClient",
+            _FailingNetworkClient,
+        )
+        self.review_patcher = patch(
+            "deep_research.handlers.research.review_after_success",
+            autospec=True,
+        )
+        for patcher in (
+            self.rag_service_patcher,
+            self.embedding_patcher,
+            self.extractor_patcher,
+            self.network_patcher,
+            self.http_patcher,
+            self.review_patcher,
+        ):
+            patcher.start()
+        self.addCleanup(self._stop_external_services)
 
-    def tearDown(self) -> None:
-        self.rag_service_patcher.stop()
+    def _stop_external_services(self) -> None:
+        for patcher in (
+            getattr(self, "network_patcher", None),
+            getattr(self, "http_patcher", None),
+            getattr(self, "review_patcher", None),
+            getattr(self, "extractor_patcher", None),
+            getattr(self, "embedding_patcher", None),
+            getattr(self, "rag_service_patcher", None),
+        ):
+            if patcher is not None:
+                patcher.stop()
+
+
+class AppLifespanTests(_LifespanIsolationMixin, unittest.IsolatedAsyncioTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self._isolate_external_state()
+        self._patch_external_services()
 
     async def test_lifespan_replaces_agent_and_closes_sqlite(
         self,
@@ -63,16 +152,14 @@ class AppLifespanTests(
             )
 
             try:
-                async with main_module.lifespan(
-                    main_module.app
-                ):
-                    self.assertIsNot(
-                        agent_module.agent,
-                        original_agent,
-                    )
-                    self.assertTrue(
-                        database_path.exists()
-                    )
+                with patch.object(agent_module, "build_agent", return_value=object()):
+                    async with main_module.lifespan(main_module.app):
+                        self.assertIsNot(agent_module.agent, original_agent)
+                        self.assertTrue(database_path.exists())
+                        self.assertIsNotNone(
+                            main_module.app.state.hitl_repository
+                        )
+                        self.assertTrue(Path(settings.hitl_db_path).exists())
             finally:
                 settings.checkpoint_db_path = (
                     original_path
@@ -82,6 +169,7 @@ class AppLifespanTests(
             agent_module.agent,
             original_agent,
         )
+        self.assertIsNone(main_module.app.state.hitl_repository)
 
     async def test_lifespan_restart_restores_messages_and_sources(
         self,
@@ -198,17 +286,11 @@ class AppLifespanTests(
                 )
                 agent_module.agent = original_agent
 
-class HttpLifecycleTests(unittest.TestCase):
+class HttpLifecycleTests(_LifespanIsolationMixin, unittest.TestCase):
     def setUp(self) -> None:
-        self.rag_service_patcher = patch.object(
-            main_module,
-            "build_rag_service",
-            return_value=FakeRagService(),
-        )
-        self.rag_service_patcher.start()
-
-    def tearDown(self) -> None:
-        self.rag_service_patcher.stop()
+        super().setUp()
+        self._isolate_external_state()
+        self._patch_external_services()
 
     def test_research_endpoint_uses_lifespan_agent(self):
         original_path = settings.checkpoint_db_path
@@ -293,18 +375,12 @@ class HttpLifecycleTests(unittest.TestCase):
                     original_path
                 )
                 agent_module.agent = original_agent
-                
-class HttpThreadContinuityTests(unittest.TestCase):
-    def setUp(self) -> None:
-        self.rag_service_patcher = patch.object(
-            main_module,
-            "build_rag_service",
-            return_value=FakeRagService(),
-        )
-        self.rag_service_patcher.start()
 
-    def tearDown(self) -> None:
-        self.rag_service_patcher.stop()
+class HttpThreadContinuityTests(_LifespanIsolationMixin, unittest.TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self._isolate_external_state()
+        self._patch_external_services()
 
     def test_same_http_thread_continues_after_restart(self):
         original_path = settings.checkpoint_db_path

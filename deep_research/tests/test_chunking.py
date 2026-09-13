@@ -53,7 +53,9 @@ class ChunkingTests(unittest.TestCase):
             ).hexdigest(),
         )
         self.assertEqual(chunk.metadata["chunk_index"], 0)
-        self.assertNotIn("status", chunk.metadata)
+        self.assertEqual(chunk.metadata["parent_id"], "doc-1:parent:0")
+        self.assertEqual(chunk.metadata["parent_child_ids"], [chunk.metadata["chunk_id"]])
+        self.assertEqual(chunk.metadata["status"], "pending")
 
     def test_long_document_is_split_with_overlap(self):
         content = "甲乙丙丁戊己庚辛壬癸" * 4

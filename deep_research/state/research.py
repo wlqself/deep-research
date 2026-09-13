@@ -3,6 +3,7 @@ from typing import Annotated, Literal, TypedDict
 from langchain.agents import AgentState
 from typing_extensions import NotRequired
 
+from ..activity import ActivityEvent, merge_activity_events
 from ..findings.types import ResearchFinding
 from ..sources import PersistentSource
 from ..artifacts.types import ArtifactMetadata
@@ -32,13 +33,16 @@ _TERMINAL_TASK_STATUSES = frozenset(
     {"completed", "failed", "cancelled"}
 )
 
+# 通过字典解包复制原记录的所有字段
 def _copy_task_record(record: TaskRecord) -> TaskRecord:
     return {
+        # 用字典解包 {**record} 把原记录的所有键值对复制到一个新字典中；
         **record,
         "finding_ids": list(record["finding_ids"]),
         "source_ids": list(record["source_ids"]),
     }
 
+# 任务合并
 def merge_tasks(
     current: dict[str, TaskRecord] | None,
     update: dict[str, TaskRecord] | None,
@@ -70,6 +74,7 @@ def merge_tasks(
 
     return merged
 
+# 来源信息幂等合并
 def merge_sources(
     current: dict[str, PersistentSource] | None,
     update: dict[str, PersistentSource] | None,
@@ -78,6 +83,7 @@ def merge_sources(
     merged.update(update or {})
     return merged
 
+# 产物元数据幂等合并
 def merge_artifacts(
     current: dict[str, ArtifactMetadata] | None,
     update: dict[str, ArtifactMetadata] | None,
@@ -99,6 +105,37 @@ def merge_findings(
     merged = dict(current or {})
     merged.update(update or {})
     return merged
+
+
+def merge_image_attachment_ids(
+    current: list[str] | None,
+    update: list[str] | None,
+) -> list[str]:
+    """Keep image references durable when message history is summarized."""
+
+    merged: list[str] = []
+    for attachment_id in [*(current or []), *(update or [])]:
+        if not isinstance(attachment_id, str):
+            continue
+        normalized = attachment_id.strip()
+        if normalized and normalized not in merged:
+            merged.append(normalized)
+    return merged
+
+
+def replace_publication_attachment_ids(
+    current: list[str] | None,
+    update: list[str] | None,
+) -> list[str]:
+    """Persist the exact image selection for the pending publication."""
+
+    if update is None:
+        return list(current or [])
+    return list(dict.fromkeys(
+        attachment_id.strip()
+        for attachment_id in update
+        if isinstance(attachment_id, str) and attachment_id.strip()
+    ))
 
 # State 的职责是
 # sources   -> 当前线程来源注册表
@@ -141,6 +178,27 @@ class ResearchState(AgentState):
         Annotated[
             dict[str, TaskRecord],
             merge_tasks,
+        ]
+    ]
+
+    image_attachment_ids: NotRequired[
+        Annotated[
+            list[str],
+            merge_image_attachment_ids,
+        ]
+    ]
+
+    publication_attachment_ids: NotRequired[
+        Annotated[
+            list[str],
+            replace_publication_attachment_ids,
+        ]
+    ]
+
+    activity: NotRequired[
+        Annotated[
+            list[ActivityEvent],
+            merge_activity_events,
         ]
     ]
 

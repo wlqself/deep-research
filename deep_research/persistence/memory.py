@@ -1,3 +1,6 @@
+import logging
+
+from ..log.logging_utils import log_event
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -7,6 +10,10 @@ from langgraph.store.sqlite import AsyncSqliteStore
 
 from ..config import settings
 from ..rag.factory import create_embeddings
+
+logger = logging.getLogger(
+    "deep_research.memory_store"
+)
 
 """
 settings.memory_db_path
@@ -27,13 +34,33 @@ async def sqlite_memory_store(
 
     memory_embeddings = embeddings or create_embeddings(settings)
 
-    async with AsyncSqliteStore.from_conn_string(
-        str(database_path),
-        index={
-            "dims": settings.embedding_dimensions,
-            "embed": memory_embeddings,
-            "fields": ["title", "summary", "keywords"],
-        },
-    ) as store:
-        await store.setup()
-        yield store
+    try:
+        async with AsyncSqliteStore.from_conn_string(
+            str(database_path),
+            index={
+                "dims": settings.embedding_dimensions,
+                "embed": memory_embeddings,
+                "fields": [
+                    "title",
+                    "summary",
+                    "keywords",
+                ],
+            },
+        ) as store:
+            await store.setup()
+
+            log_event(
+                logger,
+                logging.INFO,
+                "store.memory.started",
+                status="started",
+            )
+
+            yield store
+    finally:
+        log_event(
+            logger,
+            logging.INFO,
+            "store.memory.stopped",
+            status="completed",
+        )

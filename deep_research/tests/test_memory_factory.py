@@ -17,6 +17,7 @@ class FakeMemoryService:
     def __init__(self) -> None:
         self.user_calls = 0
         self.related_calls = 0
+        self.archive_list_calls = 0
 
     async def list_active_memories(self, **kwargs: object) -> list[object]:
         self.user_calls += 1
@@ -37,6 +38,14 @@ class FakeMemoryService:
         *,
         limit: int,
     ) -> list[object]:
+        return []
+
+    async def list_recallable_summary_archives(
+        self,
+        *,
+        limit: int,
+    ) -> list[object]:
+        self.archive_list_calls += 1
         return []
 
 
@@ -74,8 +83,9 @@ class MemoryFactoryTests(unittest.IsolatedAsyncioTestCase):
             result["messages"][-1].content,
             "Main answer",
         )
-        self.assertEqual(memory_service.user_calls, 1)
-        self.assertEqual(memory_service.related_calls, 1)
+        self.assertEqual(memory_service.user_calls, 2)
+        self.assertEqual(memory_service.related_calls, 0)
+        self.assertEqual(memory_service.archive_list_calls, 1)
 
 
 if __name__ == "__main__":

@@ -55,7 +55,7 @@ def build_search_knowledge_base_tool(
         try:
             # 丢进线程池搜索
             results = await asyncio.to_thread(
-                rag_service.search_chunks,
+                rag_service.search_contexts,
                 query,
                 top_k=effective_top_k,
                 document_id=document_id,
@@ -158,6 +158,7 @@ def build_search_knowledge_base_tool(
                     "section_title": section_title,
                     "content": content,
                     "score": score,
+                    "parent_id": metadata.get("parent_id"),
                     "source_id": source["source_id"],
                 }
             )

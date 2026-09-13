@@ -55,6 +55,22 @@ deep_research/
 └── tools/        Agent 工具
 ```
 
+## RAG 生产检索边界
+
+生产检索固定使用以下链路：原始 query 进入 Dense 子 Chunk 检索；查询改写词只进入
+BM25；Chunk Embedding 使用 metadata 加权文本；Dense 与 BM25 的 ID 排名使用 RRF
+融合；融合后的完整候选先按 `parent_id` 折叠，再返回最多 `top_k` 个不同父块，并按
+`chunk_index` 恢复连续正文。`parent_size=4`、`candidate_k=32`、`rrf_k=60` 和
+`metadata_weight=2` 是当前默认值。
+
+Qdrant 是主检索数据源，BM25 是从 Qdrant 中已索引 Chunk 派生出的词法索引。BM25
+故障只会退化为 Dense 结果，查询改写失败则退回原始 lexical query。`evaluation/`
+只负责离线指标、评测 Runner 和 reranker 实验，生产代码不依赖它；reranker 尚未进入
+生产链路。
+
+修改 `parent_size`、Chunk 结构、metadata embedding 策略、Embedding 模型或维度后，
+必须重新索引现有知识库。本项目不在本次改造中自动迁移或维护索引版本。
+
 ## 环境要求
 
 - Python 3.11+
@@ -67,8 +83,8 @@ Qdrant 使用本地磁盘模式，不需要单独启动 Qdrant Server。
 ## 安装
 
 ```powershell
-git clone https://github.com/USERNAME/deep-research-agent.git
-cd deep-research-agent
+git clone https://github.com/wlqself/deep-research.git
+cd deep-research
 
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
@@ -101,6 +117,10 @@ TAVILY_API_KEY=
 
 `EMBEDDING_DIMENSIONS` 必须与 Embedding 模型输出维度及现有 Qdrant Collection
 一致。更换模型或维度后需要重新索引知识库。
+
+AI 生图默认使用硅基流动的 `Qwen/Qwen-Image`。它复用 `MODEL_API_KEY`；如需使用
+单独的 Key，可填写 `IMAGE_GENERATION_API_KEY`。用户要求“生成并发布”时，生成结果
+会自动保存到共享图片库并作为本次发布配图，不再重复弹出配图选择卡片，但仍需经过最终发布审批。
 
 完整配置及默认值参见 `.env.example`。
 

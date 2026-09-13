@@ -16,7 +16,7 @@ class BindableFakeChatModel(GenericFakeChatModel):
 
 
 class FakeRagService:
-    def search_chunks(
+    def search_contexts(
         self,
         query: str,
         *,

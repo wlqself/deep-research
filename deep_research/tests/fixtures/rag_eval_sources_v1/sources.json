@@ -1,0 +1,36 @@
+{
+  "version": "rag-eval-sources-v1",
+  "collection_id": "rag_eval_v1",
+  "documents": [
+    {
+      "document_id": "eval-doc-index-pipeline",
+      "filename": "index-pipeline.md",
+      "mime_type": "text/markdown"
+    },
+    {
+      "document_id": "eval-doc-retrieval-design",
+      "filename": "retrieval-design.md",
+      "mime_type": "text/markdown"
+    },
+    {
+      "document_id": "eval-doc-agent-boundaries",
+      "filename": "agent-boundaries.md",
+      "mime_type": "text/markdown"
+    },
+    {
+      "document_id": "eval-doc-memory-scopes",
+      "filename": "memory-scopes.md",
+      "mime_type": "text/markdown"
+    },
+    {
+      "document_id": "eval-doc-cancellation",
+      "filename": "cancellation.md",
+      "mime_type": "text/markdown"
+    },
+    {
+      "document_id": "eval-doc-user-facing-logs",
+      "filename": "user-facing-logs.md",
+      "mime_type": "text/markdown"
+    }
+  ]
+}

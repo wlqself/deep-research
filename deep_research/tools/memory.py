@@ -4,7 +4,7 @@ from typing import Literal
 from langchain.tools import ToolRuntime
 from langchain_core.tools import tool
 from pydantic import ValidationError
-
+from ..log.logging_utils import log_event
 from ..context import ResearchContext
 from ..memory.decision import decide_candidate
 from ..memory.service import MemoryService
@@ -139,9 +139,16 @@ def build_remember_memory_tool(
                 clear_suppression=True,
             )
 
-        except Exception:
-            logger.exception(
-                "explicit memory operation failed"
+        except Exception as error:
+            log_event(
+                logger,
+                logging.ERROR,
+                "memory.write.failed",
+                thread_id=thread_id,
+                status="failed",
+                error_code="memory_write_failed",
+                exception_type=type(error).__name__,
+                exc_info=True,
             )
             return _error(
                 "memory_write_failed",
@@ -191,9 +198,15 @@ def build_recall_memories_tool(
                     limit=settings.memory_recall_limit,
                 )
             )
-        except Exception:
-            logger.exception(
-                "memory recall failed"
+        except Exception as error:
+            log_event(
+                logger,
+                logging.ERROR,
+                "memory.recall.failed",
+                status="failed",
+                error_code="memory_recall_failed",
+                exception_type=type(error).__name__,
+                exc_info=True,
             )
             return _error(
                 "memory_recall_failed",
@@ -261,9 +274,15 @@ def build_list_memories_tool(
                 "invalid_memory_list_request",
                 "Memory list parameters are invalid.",
             )
-        except Exception:
-            logger.exception(
-                "memory list failed"
+        except Exception as error:
+            log_event(
+                logger,
+                logging.ERROR,
+                "memory.list.failed",
+                status="failed",
+                error_code="memory_list_failed",
+                exception_type=type(error).__name__,
+                exc_info=True,
             )
             return _error(
                 "memory_list_failed",
@@ -407,9 +426,21 @@ def build_forget_memory_tool(
                 reason="explicit_user_forget",
             )
 
-        except Exception:
-            logger.exception(
-                "explicit memory forget failed"
+        except Exception as error:
+            log_event(
+                logger,
+                logging.ERROR,
+                "memory.forget.failed",
+                thread_id=thread_id,
+                memory_id=(
+                    memory_id.strip()
+                    if has_id
+                    else None
+                ),
+                status="failed",
+                error_code="memory_forget_failed",
+                exception_type=type(error).__name__,
+                exc_info=True,
             )
             return _error(
                 "memory_forget_failed",

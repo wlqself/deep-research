@@ -1,0 +1,42 @@
+{
+  "version": "rag-eval-pdf-sources-v1",
+  "collection_id": "rag_eval_pdf_v1",
+  "documents": [
+    {
+      "document_id": "eval-pdf-2603-22386-v1",
+      "filename": "2603.22386v1.pdf",
+      "mime_type": "application/pdf",
+      "category": "research-paper"
+    },
+    {
+      "document_id": "eval-pdf-2604-08224-v1",
+      "filename": "2604.08224v1.pdf",
+      "mime_type": "application/pdf",
+      "category": "research-paper"
+    },
+    {
+      "document_id": "eval-pdf-cviu-anonymous-manuscript-v3",
+      "filename": "CVIU_ANONYMOUS_MANUSCRIPT_V3.pdf",
+      "mime_type": "application/pdf",
+      "category": "research-paper"
+    },
+    {
+      "document_id": "eval-pdf-happy-llm-0727",
+      "filename": "Happy-LLM-0727.pdf",
+      "mime_type": "application/pdf",
+      "category": "technical-book"
+    },
+    {
+      "document_id": "eval-pdf-yolo26-mamba-attribution",
+      "filename": "YOLO26_Mamba受控归因研究_汇报材料.pdf",
+      "mime_type": "application/pdf",
+      "category": "project-report"
+    },
+    {
+      "document_id": "eval-pdf-deep-research-project",
+      "filename": "手撕一个Deep Research项目.pdf",
+      "mime_type": "application/pdf",
+      "category": "project-document"
+    }
+  ]
+}

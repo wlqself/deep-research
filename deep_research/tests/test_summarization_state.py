@@ -341,6 +341,23 @@ class SummarizationStateTests(
             },
         )
 
+        image_user_message = HumanMessage(
+            content="[系统图片附件上下文：图片附件属于用户上传的共享资源。]",
+            additional_kwargs={
+                "display_content": "请看看这张图片",
+                "attachment_ids": ["image-1", "image-1", "image-2"],
+            },
+        )
+
+        self.assertEqual(
+            _serialize_message(image_user_message),
+            {
+                "role": "user",
+                "content": "请看看这张图片",
+                "attachment_ids": ["image-1", "image-2"],
+            },
+        )
+
     async def test_second_summary_replaces_first_summary(self):
         fake_model = GenericFakeChatModel(
             messages=iter(

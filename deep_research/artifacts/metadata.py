@@ -1,6 +1,7 @@
 import re
 from uuid import uuid4
 
+# 把标题转成安全的文件名前缀
 def _safe_title_stem(title: str) -> str:
     stem = re.sub(
         r"[^0-9A-Za-z\u4e00-\u9fff]+",
@@ -10,6 +11,7 @@ def _safe_title_stem(title: str) -> str:
 
     return stem[:60] or "research_report"
 
+# 构建产物的完整元数据
 def build_artifact_metadata(
         title: str,
         artifact_id:str | None = None,

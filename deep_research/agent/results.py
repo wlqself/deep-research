@@ -2,6 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+# 定义researcher的结果组成
 class ResearcherResult(BaseModel):
     summary: str
     finding_ids: list[str]

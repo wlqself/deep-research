@@ -1,6 +1,6 @@
 import asyncio
 import logging
-
+from ..log.logging_utils import log_event
 from ..config import settings
 from .projection import (
     _ordered_entries,
@@ -17,6 +17,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 from uuid import uuid4
 
+from ..log.log_audit import audit_event
 from langgraph.store.base import PutOp
 from langgraph.store.sqlite import AsyncSqliteStore
 from langgraph.store.base import PutOp
@@ -60,7 +61,7 @@ class MemoryService:
 
 
     def _mark_store_changed(self) -> None:
-        self._recall_revision += 1        
+        self._recall_revision += 1
     # 用来把不同 kind 的记忆隔离存储
     def _entry_namespace(
         self,
@@ -71,7 +72,13 @@ class MemoryService:
             self._user_id,
             kind,
         )
-    
+
+    def _entry_prefix(self) -> tuple[str, ...]:
+        return (
+            "memories",
+            self._user_id,
+        )
+
     # 这是唯一的写入口。所有记忆（无论 reference 还是 feedback）都走这一个方法，保证写入逻辑统一。
     async def put_entry(
         self,
@@ -107,7 +114,7 @@ class MemoryService:
 
         if item is None:
             return None
-    
+
         return MemoryEntry.model_validate(item.value)
 
     # 给定记忆类型、业务键、作用域，直接过滤出所有匹配的 active 记忆条目（通常预期 0 或 1 条，但防御性地返回列表）。
@@ -185,18 +192,19 @@ class MemoryService:
         if limit < 1:
             raise ValueError("limit must be positive")
 
-        matches: list[
-            tuple[MemoryEntry, float | None]
-        ] = []
-
-        for kind in _ENTRY_KINDS:
-            matches.extend(
-                await self.find_similar_entries(
-                    kind,
-                    normalized_query,
-                    limit=limit,
-                )
+        items = await self._store.asearch(
+            self._entry_prefix(),
+            query=normalized_query,
+            filter={"status": "active"},
+            limit=limit,
+        )
+        matches = [
+            (
+                MemoryEntry.model_validate(item.value),
+                item.score,
             )
+            for item in items
+        ]
         # 全局排序，True（有分数）排在 False（无分数）前面​ → 保证「真正检索到的」优先于「没分数的兜底项」，在有分数的那些里，按分数从高到低排（越相似越靠前）
         matches.sort(
             key=lambda item: (
@@ -253,7 +261,7 @@ class MemoryService:
         )
         self._mark_store_changed()
         await self._rebuild_after_store_write()
-        
+
     async def find_similar_candidates(
         self,
         candidate: MemoryCandidate,
@@ -261,7 +269,7 @@ class MemoryService:
     ) -> list[tuple[MemoryEntry, float | None]]:
         """
         面向 MemoryCandidate 的只读相似搜索。
-        
+
         规则：
         - ignore：不搜索、不写入，直接返回空列表
         - 其他 kind：只搜索相同 kind、同一 user_id namespace、status=active
@@ -353,11 +361,20 @@ class MemoryService:
         existing: MemoryEntry | None = None,
         clear_suppression: bool = False,
     ) -> MemoryEntry | None:
+
         if candidate.kind == "ignore":
             if decision.action != "ignore":
                 raise ValueError(
                     "ignore candidate must produce ignore decision"
                 )
+
+            log_event(
+                logger,
+                logging.INFO,
+                "memory.suppressed",
+                status="suppressed",
+            )
+
             return None
 
         if decision.action == "ignore":
@@ -394,7 +411,17 @@ class MemoryService:
                     ]
                 )
                 self._mark_store_changed()
-
+            log_event(
+                logger,
+                logging.INFO,
+                "memory.noop",
+                memory_id=(
+                    existing.id
+                    if existing is not None
+                    else None
+                ),
+                status="no_op",
+            )
             return existing
 
         now = datetime.now(timezone.utc)
@@ -420,6 +447,25 @@ class MemoryService:
             await self._store.abatch(ops)
             self._mark_store_changed()
             await self._rebuild_after_store_write()
+
+            audit_event(
+                "memory.create",
+                "completed",
+                thread_id=getattr(
+                    candidate,
+                    "source_thread_id",
+                    None,
+                ),
+                memory_id=new_entry.id,
+            )
+            log_event(
+                logger,
+                logging.INFO,
+                "memory.created",
+                memory_id=new_entry.id,
+                status="completed",
+            )
+
             return new_entry
 
         if decision.action == "update":
@@ -479,6 +525,16 @@ class MemoryService:
                 )
 
             try:
+                audit_event(
+                    "memory.update",
+                    "completed",
+                    thread_id=getattr(
+                        candidate,
+                        "source_thread_id",
+                        None,
+                    ),
+                    memory_id=new_entry.id,
+                )
                 await self._store.abatch(ops)
             except Exception:
                 try:
@@ -504,13 +560,21 @@ class MemoryService:
 
                 raise
             self._mark_store_changed()
-            await self._rebuild_after_store_write()    
+            await self._rebuild_after_store_write()
+            log_event(
+                logger,
+                logging.INFO,
+                "memory.updated",
+                memory_id=new_entry.id,
+                status="completed",
+            )
+
             return new_entry
 
         raise ValueError(
             f"unsupported decision action: {decision.action}"
         )
-    
+
     # 输出类型下的所有​ MemoryEntry 列表
     async def _load_all_entries(
         self,
@@ -564,7 +628,7 @@ class MemoryService:
                 break
 
         return archives
-    
+
     # suppression 全量读取 helper
     async def _load_all_suppressions(
         self,
@@ -734,9 +798,15 @@ class MemoryService:
     async def _rebuild_after_store_write(self) -> None:
         try:
             await self.rebuild_projections()
-        except Exception:  # 记录完整堆栈到日志
-            logger.exception(
-                "memory projection rebuild failed after store write"
+        except Exception as error:
+            log_event(
+                logger,
+                logging.ERROR,
+                "memory.projection.rebuild.failed",
+                status="failed",
+                error_code="memory_projection_rebuild_failed",
+                exception_type=type(error).__name__,
+                exc_info=True,
             )
     """
     kind=None
@@ -751,7 +821,7 @@ class MemoryService:
     多类结果
     -> 按 updated_at 倒序合并
     -> 全局分页
-    """        
+    """
     async def list_active_memories(
         self,
         *,
@@ -929,6 +999,27 @@ class MemoryService:
             for item in items
         ]
 
+    async def list_recallable_summary_archives(
+        self,
+        *,
+        limit: int,
+    ) -> list[SummaryArchive]:
+        """List a bounded local index without performing semantic search."""
+
+        if limit < 1:
+            raise ValueError("limit must be positive")
+
+        archives = await self.list_summary_archives(
+            limit=max(limit * 4, limit),
+        )
+        recallable: list[SummaryArchive] = []
+        for archive in archives:
+            if await self._archive_is_recallable(archive):
+                recallable.append(archive)
+            if len(recallable) >= limit:
+                break
+        return recallable
+
     # 选择性向量检索： search_summary_archives(query)
     #                 -> 当前用户全部 thread 的归档中做向量检索
     async def search_summary_archives(
@@ -973,10 +1064,10 @@ class MemoryService:
             self._user_id,
             "suppressions",
         )
-    
+
     # 生成稳定的 identity key
     # 这个 ID 的目的，是保证同一个 (kind, memory_key, scope) 不会因为重复 forget 产生多条 suppression
-    
+
     def _suppression_id(
         self,
         kind: MemoryEntryKind,
@@ -1041,6 +1132,13 @@ class MemoryService:
         )
 
         self._mark_store_changed()
+        log_event(
+            logger,
+            logging.INFO,
+            "memory.suppression.created",
+            memory_id=suppression.forgotten_memory_id,
+            status="completed",
+        )
 
     async def delete_suppression(
         self,
@@ -1048,7 +1146,7 @@ class MemoryService:
         memory_key: str,
         scope: MemoryScope,
     ) -> bool:
-        
+
         suppression = await self.find_suppression(
             kind,
             memory_key,
@@ -1064,6 +1162,12 @@ class MemoryService:
         )
 
         self._mark_store_changed()
+        log_event(
+            logger,
+            logging.INFO,
+            "memory.suppression.deleted",
+            status="completed",
+        )
         return True
 
     async def forget_entry(
@@ -1082,7 +1186,7 @@ class MemoryService:
 
         if entry is None or entry.status != "active":
             raise ValueError("active memory not found")
-        
+
         # 构造 suppression。
         now = datetime.now(timezone.utc)
 
@@ -1136,8 +1240,21 @@ class MemoryService:
             -> 上层不得报告成功
         """
         await self.rebuild_projections()
+        audit_event(
+            "memory.forget",
+            "completed",
+            thread_id=source_thread_id,
+            memory_id=entry.id,
+        )
+        log_event(
+            logger,
+            logging.INFO,
+            "memory.forgotten",
+            memory_id=entry.id,
+            status="completed",
+        )
         return entry
-    
+
     """
     四类业务 namespace
     -> 删除 active
@@ -1203,6 +1320,16 @@ class MemoryService:
 
         await self.rebuild_projections()
 
+        audit_event(
+            "memory.clear",
+            "completed",
+        )
+        log_event(
+            logger,
+            logging.INFO,
+            "memory.cleared",
+            status="completed",
+        )
         return deleted_memory_count
     async def _archive_is_recallable(
         self,

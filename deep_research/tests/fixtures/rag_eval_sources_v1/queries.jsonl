@@ -1,0 +1,40 @@
+{"_id": "q01", "text": "什么是 agentic computation graph，它里面的节点和边分别表示什么？", "metadata": {"type": "semantic", "difficulty": "medium", "answerable": true, "tags": ["agent-workflow", "acg", "multi-relevant"]}}
+{"_id": "q02", "text": "workflow template、realized graph 和 execution trace 有什么区别？", "metadata": {"type": "exact-term", "difficulty": "medium", "answerable": true, "tags": ["workflow", "trace", "exact-term"]}}
+{"_id": "q03", "text": "评测 agent workflow 时，除了最终答案还应该报告哪些成本和结构指标？", "metadata": {"type": "semantic", "difficulty": "hard", "answerable": true, "tags": ["evaluation", "cost", "workflow-metrics", "multi-relevant"]}}
+{"_id": "q04", "text": "一个严谨的 workflow benchmark 最低需要固定和记录哪些内容？", "metadata": {"type": "exact-term", "difficulty": "hard", "answerable": true, "tags": ["benchmark", "reporting", "hard-negative"]}}
+{"_id": "q05", "text": "workflow 的鲁棒性应该如何测试，而不是只测正常输入？", "metadata": {"type": "semantic", "difficulty": "hard", "answerable": true, "tags": ["robustness", "perturbation"]}}
+{"_id": "q06", "text": "Externalization 这篇综述把 LLM agent 的外部化分成哪几个维度？", "metadata": {"type": "exact-term", "difficulty": "easy", "answerable": true, "tags": ["externalization", "memory", "skills", "protocols", "multi-relevant"]}}
+{"_id": "q07", "text": "为什么长上下文和更多 prompt 不能单独解决 long-horizon agent 的问题？", "metadata": {"type": "semantic", "difficulty": "hard", "answerable": true, "tags": ["long-horizon", "context", "harness", "multi-relevant"]}}
+{"_id": "q08", "text": "procedural skill 可以通过哪些路径进入 agent 系统？", "metadata": {"type": "semantic", "difficulty": "medium", "answerable": true, "tags": ["skills", "skill-acquisition"]}}
+{"_id": "q09", "text": "当日志反复暴露瓶颈时，harness 可以从哪些层面进行调整？", "metadata": {"type": "semantic", "difficulty": "hard", "answerable": true, "tags": ["logs", "harness", "adaptation"]}}
+{"_id": "q10", "text": "如果 agent 进入多轮长任务，为什么需要把部分能力从 weights 外移到 infrastructure？", "metadata": {"type": "semantic", "difficulty": "medium", "answerable": true, "tags": ["externalization", "infrastructure"]}}
+{"_id": "q11", "text": "这篇综述如何理解 logs 对 agent 系统演化的作用？", "metadata": {"type": "semantic", "difficulty": "medium", "answerable": true, "tags": ["logs", "feedback-loop"]}}
+{"_id": "q12", "text": "CVIU 论文对 YOLO26 中 Mamba 的总体结论是什么？", "metadata": {"type": "semantic", "difficulty": "medium", "answerable": true, "tags": ["mamba", "yolo26", "main-result", "multi-relevant"]}}
+{"_id": "q13", "text": "C0、C1-W 和 C1-C8 三个 YOLO26 变体分别承担什么实验角色？", "metadata": {"type": "exact-term", "difficulty": "medium", "answerable": true, "tags": ["mamba", "controls", "exact-term", "multi-relevant"]}}
+{"_id": "q14", "text": "三个预定义归因效应 C1-W−C0、C1-C8−C0 和 C1-W−C1-C8 分别回答什么问题？", "metadata": {"type": "exact-term", "difficulty": "hard", "answerable": true, "tags": ["attribution", "causal-contrast", "exact-term"]}}
+{"_id": "q15", "text": "为什么 C1-C8 被称为 matched control，而不是简单的 ablation？", "metadata": {"type": "semantic", "difficulty": "hard", "answerable": true, "tags": ["matched-control", "ablation", "hard-negative", "multi-relevant"]}}
+{"_id": "q16", "text": "这项研究如何防止 held-out 测试集被反复调参污染？", "metadata": {"type": "semantic", "difficulty": "hard", "answerable": true, "tags": ["held-out", "evaluation-protocol", "leakage"]}}
+{"_id": "q17", "text": "CVIU 实验使用了多少个随机种子，为什么要配对？", "metadata": {"type": "exact-term", "difficulty": "medium", "answerable": true, "tags": ["random-seed", "paired-evaluation"]}}
+{"_id": "q18", "text": "YOLO26 Mamba 研究为什么同时使用 development 和 held-out 分区？", "metadata": {"type": "semantic", "difficulty": "medium", "answerable": true, "tags": ["development", "held-out", "generalization", "multi-document"]}}
+{"_id": "q19", "text": "这项研究的证据记录如何支持可复现性？", "metadata": {"type": "semantic", "difficulty": "hard", "answerable": true, "tags": ["reproducibility", "evidence", "multi-document"]}}
+{"_id": "q20", "text": "为什么这项研究不能据此声称 Mamba 在所有目标检测任务中都无效？", "metadata": {"type": "semantic", "difficulty": "hard", "answerable": true, "tags": ["limitations", "generalization", "negative-result"]}}
+{"_id": "q21", "text": "YOLO26 Mamba 汇报材料给出的研究一句话结论是什么？", "metadata": {"type": "semantic", "difficulty": "easy", "answerable": true, "tags": ["yolo26", "summary"]}}
+{"_id": "q22", "text": "YOLO26 项目中三个模型的核心差异是什么？", "metadata": {"type": "exact-term", "difficulty": "medium", "answerable": true, "tags": ["yolo26", "model-variants", "exact-term"]}}
+{"_id": "q23", "text": "YOLO26 研究中三个归因效应的计算方式是什么？", "metadata": {"type": "exact-term", "difficulty": "hard", "answerable": true, "tags": ["attribution", "formula", "exact-term"]}}
+{"_id": "q24", "text": "YOLO26 实验为什么要使用三个随机种子和一次性独立评估？", "metadata": {"type": "semantic", "difficulty": "hard", "answerable": true, "tags": ["protocol", "randomness", "held-out", "multi-document"]}}
+{"_id": "q25", "text": "C1-C8 在 UA development、UA held-out 和 VisDrone development 上的 seed 结果有什么特点？", "metadata": {"type": "exact-term", "difficulty": "hard", "answerable": true, "tags": ["seed", "results", "generalization"]}}
+{"_id": "q26", "text": "为什么这项没有稳定正收益的研究仍然具有发表价值？", "metadata": {"type": "semantic", "difficulty": "medium", "answerable": true, "tags": ["negative-result", "publication", "methodology"]}}
+{"_id": "q27", "text": "这项研究对 Mamba 结论明确保留了哪些边界？", "metadata": {"type": "semantic", "difficulty": "hard", "answerable": true, "tags": ["limitations", "scope", "generalization"]}}
+{"_id": "q28", "text": "Happy-LLM 教程的章节安排覆盖哪些主要主题？", "metadata": {"type": "exact-term", "difficulty": "easy", "answerable": true, "tags": ["happy-llm", "course-outline", "multi-relevant"]}}
+{"_id": "q29", "text": "Transformer 的 Encoder 和 Decoder 在 Seq2Seq 中分别承担什么角色？", "metadata": {"type": "semantic", "difficulty": "medium", "answerable": true, "tags": ["transformer", "encoder-decoder"]}}
+{"_id": "q30", "text": "Decoder layer 为什么包含 masked self-attention 和 cross-attention？", "metadata": {"type": "semantic", "difficulty": "hard", "answerable": true, "tags": ["transformer", "decoder", "attention"]}}
+{"_id": "q31", "text": "tokenizer 在 LLM 输入处理中负责什么？", "metadata": {"type": "semantic", "difficulty": "easy", "answerable": true, "tags": ["tokenizer", "input-processing"]}}
+{"_id": "q32", "text": "Transformer 的 Post-Norm 和 Pre-Norm 结构差异在哪里？", "metadata": {"type": "exact-term", "difficulty": "medium", "answerable": true, "tags": ["transformer", "layernorm", "pre-norm", "post-norm"]}}
+{"_id": "q33", "text": "LoRA 相比传统全参数微调有哪些优势？", "metadata": {"type": "semantic", "difficulty": "medium", "answerable": true, "tags": ["lora", "efficient-finetuning"]}}
+{"_id": "q34", "text": "LoRA 应用到 Transformer 时通常修改哪些模块，target_modules 有什么作用？", "metadata": {"type": "exact-term", "difficulty": "hard", "answerable": true, "tags": ["lora", "transformer", "target-modules", "multi-relevant"]}}
+{"_id": "q35", "text": "Deep Research 和普通问答或基础 RAG 的核心区别是什么？", "metadata": {"type": "semantic", "difficulty": "medium", "answerable": true, "tags": ["deep-research", "rag", "comparison", "multi-relevant"]}}
+{"_id": "q36", "text": "一个典型 Deep Research 工作流包含哪些主要阶段？", "metadata": {"type": "semantic", "difficulty": "medium", "answerable": true, "tags": ["deep-research", "workflow"]}}
+{"_id": "q37", "text": "DeepAgents 的 task 工具为什么强调 Context Quarantine？", "metadata": {"type": "exact-term", "difficulty": "medium", "answerable": true, "tags": ["deepagents", "task", "context-quarantine"]}}
+{"_id": "q38", "text": "SubAgentMiddleware 中一次 task 委派通常经历哪些步骤？", "metadata": {"type": "semantic", "difficulty": "hard", "answerable": true, "tags": ["subagent", "delegation", "workflow"]}}
+{"_id": "q39", "text": "为什么 Deep Research 流程建议保留 think_tool？", "metadata": {"type": "semantic", "difficulty": "hard", "answerable": true, "tags": ["think-tool", "metacognition", "traceability"]}}
+{"_id": "q40", "text": "这 7 篇 PDF 的 BM25 检索 Recall@10 当前是多少？", "metadata": {"type": "unanswerable", "difficulty": "hard", "answerable": false, "tags": ["unanswerable", "abstention", "bm25"]}}

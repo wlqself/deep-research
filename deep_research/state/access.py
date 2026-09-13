@@ -23,6 +23,9 @@ async def thread_values(
 async def context_for_thread(
     agent: Any,
     thread_id: str,
+    *,
+    selected_attachment_ids: tuple[str, ...] = (),
+    attachment_selection_confirmed: bool = False,
 ) -> ResearchContext:
     values = await thread_values(
         agent,
@@ -41,8 +44,34 @@ async def context_for_thread(
         else 1
     )
 
+    raw_image_ids = values.get("image_attachment_ids", [])
+    conversation_attachment_ids = (
+        tuple(
+            attachment_id.strip()
+            for attachment_id in raw_image_ids
+            if isinstance(attachment_id, str) and attachment_id.strip()
+        )
+        if isinstance(raw_image_ids, (list, tuple))
+        else ()
+    )
+
+    raw_publication_image_ids = values.get("publication_attachment_ids", [])
+    publication_attachment_ids = (
+        tuple(
+            attachment_id.strip()
+            for attachment_id in raw_publication_image_ids
+            if isinstance(attachment_id, str) and attachment_id.strip()
+        )
+        if isinstance(raw_publication_image_ids, (list, tuple))
+        else ()
+    )
+
     return ResearchContext.from_settings(
         next_source_number=next_source_number,
+        selected_attachment_ids=selected_attachment_ids,
+        publication_attachment_ids=publication_attachment_ids,
+        conversation_attachment_ids=conversation_attachment_ids,
+        attachment_selection_confirmed=attachment_selection_confirmed,
     )
 
 

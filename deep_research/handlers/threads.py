@@ -1,3 +1,8 @@
+import logging
+
+from ..log.logging_utils import log_event
+from ..log.log_audit import audit_event
+
 from typing import Any
 from uuid import UUID
 
@@ -15,21 +20,25 @@ from langchain_core.messages import (
 )
 
 from .. import agent as agent_module
+from ..activity import ActivityEvent
 from ..agent.messages import content_to_text
 from ..citations import append_verified_sources
 from ..state.access import sources_for_thread, thread_values
 from ..state.runtime import agent_config
-
 router = APIRouter()
-
+logger = logging.getLogger(
+    "deep_research.thread"
+)
 
 class ThreadSnapshot(BaseModel):
     thread_id: UUID
     title: str
-    messages: list[dict[str, str]]
+    messages: list[dict[str, Any]]
     summary: str | None
     todos: list[dict[str, str]]
     artifacts: list[dict[str, Any]]
+    tasks: list[dict[str, Any]]
+    activity: list[ActivityEvent]
 
 class ThreadRenameRequest(BaseModel):
     title: str = Field(
@@ -70,7 +79,7 @@ def _is_summary_message(message: Any) -> bool:
 # 普通 HumanMessage -> user
 # 普通 AIMessage -> assistant
 
-def _serialize_message(message: Any) -> dict[str, str] | None:
+def _serialize_message(message: Any) -> dict[str, Any] | None:
 
     if _is_summary_message(message):
         return None   
@@ -90,18 +99,86 @@ def _serialize_message(message: Any) -> dict[str, str] | None:
     else:
         return None
     #  尝试读取 message.content；如果这个对象根本没有 content 属性，就返回 ""，而不是报错。
-    content = content_to_text(
-        getattr(message, "content", "")
-    )
+    content = content_to_text(getattr(message, "content", ""))
+
+    additional_kwargs = getattr(message, "additional_kwargs", {})
+    if role == "user" and isinstance(additional_kwargs, dict):
+        display_content = additional_kwargs.get("display_content")
+        if isinstance(display_content, str) and display_content.strip():
+            content = display_content.strip()
 
     if not content:
         return None
 
-    return {
+    serialized: dict[str, Any] = {
         "role": role,
         "content": content,
     }
 
+    if role == "user":
+        additional_kwargs = getattr(message, "additional_kwargs", {})
+        raw_attachment_ids = (
+            additional_kwargs.get("attachment_ids", [])
+            if isinstance(additional_kwargs, dict)
+            else []
+        )
+        if isinstance(raw_attachment_ids, (list, tuple)):
+            attachment_ids = list(dict.fromkeys(
+                attachment_id.strip()
+                for attachment_id in raw_attachment_ids
+                if isinstance(attachment_id, str) and attachment_id.strip()
+            ))
+            if attachment_ids:
+                serialized["attachment_ids"] = attachment_ids
+
+    return serialized
+
+_TERMINAL_TASK_STATUSES = frozenset(
+    {"completed", "failed", "cancelled"}
+)
+
+
+def _serialize_tasks(
+    values: dict[str, Any],
+) -> list[dict[str, Any]]:
+    raw_tasks = values.get("tasks", {})
+
+    if not isinstance(raw_tasks, dict):
+        return []
+
+    tasks: list[dict[str, Any]] = []
+
+    for task_key, record in raw_tasks.items():
+        if not isinstance(task_key, str):
+            continue
+
+        if not isinstance(record, dict):
+            continue
+
+        status = record.get("status")
+
+        if status not in _TERMINAL_TASK_STATUSES:
+            continue
+
+        completed_at = record.get("completed_at")
+
+        if not isinstance(completed_at, str):
+            continue
+
+        serialized = dict(record)
+
+        task_id = serialized.get("task_id")
+
+        if not isinstance(task_id, str) or not task_id:
+            serialized["task_id"] = task_key
+
+        tasks.append(serialized)
+
+    tasks.sort(
+        key=lambda item: item["completed_at"],
+    )
+
+    return tasks
 
 def _serialize_todos(values: dict[str, Any]) -> list[dict[str, str]]:
     raw_todos = values.get("todos", [])
@@ -162,6 +239,73 @@ def _serialize_artifacts(
 
     return artifacts
 
+
+def _serialize_activity(
+    values: dict[str, Any],
+) -> list[ActivityEvent]:
+    raw_activity = values.get("activity", [])
+
+    if not isinstance(raw_activity, list):
+        return []
+
+    activity: list[ActivityEvent] = []
+    required_fields = (
+        "id",
+        "run_id",
+        "timestamp",
+        "kind",
+        "actor",
+                "status",
+                "label",
+                "detail",
+    )
+
+    for item in raw_activity:
+        if not isinstance(item, dict):
+            continue
+
+        if not all(
+            isinstance(item.get(field), str)
+            for field in required_fields
+        ):
+            continue
+
+        elapsed_ms = item.get("elapsed_ms")
+        summary = item.get("summary", item["label"])
+
+        if not isinstance(summary, str):
+            summary = item["label"]
+
+        if (
+            elapsed_ms is not None
+            and (
+                not isinstance(elapsed_ms, (int, float))
+                or isinstance(elapsed_ms, bool)
+            )
+        ):
+            elapsed_ms = None
+
+        activity.append(
+            {
+                "id": item["id"],
+                "run_id": item["run_id"],
+                "timestamp": item["timestamp"],
+                "kind": item["kind"],
+                "actor": item["actor"],
+                "status": item["status"],
+                "label": item["label"],
+                "summary": summary,
+                "detail": item["detail"],
+                "elapsed_ms": elapsed_ms,
+            }
+        )
+
+    return activity
+
+_SUMMARY_PREFIX = (
+    "Here is a summary of the conversation to date:\n\n"
+)
+
 def _extract_summary(
     values: dict[str, Any],
 ) -> str | None:
@@ -178,9 +322,13 @@ def _extract_summary(
             getattr(message, "content", "")
         )
 
+        if content.startswith(_SUMMARY_PREFIX):
+            content = content[len(_SUMMARY_PREFIX):]
+
         return content or None
 
     return None
+
 """
 PATCH /threads/{thread_id}
   -> 校验标题
@@ -272,7 +420,7 @@ async def get_thread_snapshot(
             detail="Thread not found.",
         )
 
-    messages: list[dict[str, str]] = []
+    messages: list[dict[str, Any]] = []
 
     for message in raw_messages:
         serialized = _serialize_message(message)
@@ -317,6 +465,8 @@ async def get_thread_snapshot(
         summary=summary,
         todos=_serialize_todos(values),
         artifacts=_serialize_artifacts(values),
+        tasks=_serialize_tasks(values),
+        activity=_serialize_activity(values),
     )
 
 @router.delete(
@@ -361,17 +511,49 @@ async def delete_thread(
             status_code=503,
             detail="Thread deletion is unavailable.",
         )
-
+    log_event(
+        logger,
+        logging.INFO,
+        "thread.delete.started",
+        thread_id=normalized_thread_id,
+        status="started",
+    )
     try:
         await checkpointer.adelete_thread(
             normalized_thread_id
         )
+        audit_event(
+            "thread.delete",
+            "completed",
+            thread_id=normalized_thread_id,
+        )
     except Exception as exc:
+        log_event(
+            logger,
+            logging.ERROR,
+            "thread.delete.failed",
+            thread_id=normalized_thread_id,
+            status="failed",
+            error_code="thread_delete_failed",
+            exception_type=type(exc).__name__,
+            exc_info=True,
+        )
+        audit_event(
+            "thread.delete",
+            "failed",
+            thread_id=normalized_thread_id,
+        )
         raise HTTPException(
             status_code=503,
             detail="Thread deletion failed.",
         ) from exc
-
+    log_event(
+        logger,
+        logging.INFO,
+        "thread.deleted",
+        thread_id=normalized_thread_id,
+        status="completed",
+    )
     return ThreadDeleteResponse(
         thread_id=thread_id,
         deleted=True,

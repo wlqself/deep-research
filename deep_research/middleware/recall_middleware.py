@@ -1,5 +1,6 @@
 import hashlib
 import logging
+import time
 from collections import OrderedDict
 
 from langchain.agents.middleware import AgentMiddleware
@@ -13,12 +14,12 @@ from langchain_core.messages import (
 
 from ..config import settings
 from ..memory.projection import (
-    render_entry_markdown,
-    render_summary_archive_recall_markdown,
     render_user_markdown,
 )
+from ..memory.type import MemoryEntry, SummaryArchive
 
 from ..memory.service import MemoryService
+from ..log.logging_utils import log_event
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +100,7 @@ class MainMemoryRecallMiddleware(AgentMiddleware):
         if latest_user is None:
             return await handler(request)
 
-        message_id, query = latest_user
+        _message_id, _query = latest_user
         """
         同一轮、没有写入
         -> 命中缓存
@@ -118,19 +119,13 @@ class MainMemoryRecallMiddleware(AgentMiddleware):
             0,
         )
 
-        query_hash = hashlib.sha256(
-            query.encode("utf-8")
-        ).hexdigest()
-
-        cache_key = (
-            f"{revision}:{message_id}:{query_hash}"
-        )
+        cache_key = str(revision)
 
         if cache_key in self._cache:
             memory_block = self._cache[cache_key]
             self._cache.move_to_end(cache_key)
         else:
-            memory_block = await self._build_memory_block(query)
+            memory_block = await self._build_memory_block()
 
             self._cache[cache_key] = memory_block
             self._cache.move_to_end(cache_key)
@@ -166,8 +161,8 @@ class MainMemoryRecallMiddleware(AgentMiddleware):
 
     async def _build_memory_block(
         self,
-        query: str,
     ) -> str:
+        started_at = time.perf_counter()
         try:
             user_entries = (
                 await self._memory_service.list_active_memories(
@@ -177,33 +172,22 @@ class MainMemoryRecallMiddleware(AgentMiddleware):
                 )
             )
 
-            related_entries = (
-                await self._memory_service.find_review_memories(
-                    query,
-                    limit=settings.memory_recall_limit,
-                )
+            indexed_entries = await self._memory_service.list_active_memories(
+                page=1,
+                page_size=(
+                    settings.memory_page_size
+                    + settings.memory_user_max_entries
+                ),
             )
-
-            related_entries = [
+            indexed_entries = [
                 entry
-                for entry in related_entries
+                for entry in indexed_entries
                 if entry.kind != "user"
-            ]
+            ][:settings.memory_page_size]
 
-            summary_archives = (
-                await self._memory_service.search_summary_archives(
-                    query,
-                    limit=settings.memory_recall_limit,
-                )
+            summary_archives = await self._memory_service.list_recallable_summary_archives(
+                limit=settings.memory_page_size,
             )
-            summary_archives = [
-                archive
-                for archive in summary_archives
-                if (
-                    archive.recallable
-                    and archive.retrieval_summary.strip()
-                )
-            ]
 
             user_markdown = render_user_markdown(
                 user_entries,
@@ -211,32 +195,10 @@ class MainMemoryRecallMiddleware(AgentMiddleware):
                 max_chars=settings.memory_user_max_chars,
             )
 
-            related_blocks: list[str] = []
-
-            for entry in related_entries:
-                related_blocks.append(
-                    render_entry_markdown(entry)
-                )
-
-            for archive in summary_archives:
-                rendered_archive = (
-                    render_summary_archive_recall_markdown(
-                        archive
-                    )
-                )
-
-                if rendered_archive:
-                    related_blocks.append(rendered_archive)
-
-            related_markdown = "\n\n---\n\n".join(
-                block.rstrip()
-                for block in related_blocks[
-                    :settings.memory_recall_limit
-                ]
+            memory_index = _render_memory_index(
+                indexed_entries,
+                summary_archives,
             )
-
-            if not related_markdown:
-                related_markdown = "No related memories."
 
             block = (
                 "<untrusted_long_term_memory>\n"
@@ -246,20 +208,75 @@ class MainMemoryRecallMiddleware(AgentMiddleware):
                 "<user_memories>\n"
                 f"{user_markdown}"
                 "</user_memories>\n\n"
-                "<related_memories>\n"
-                f"{related_markdown}"
-                "</related_memories>\n"
+                "<memory_index>\n"
+                f"{memory_index}"
+                "</memory_index>\n"
                 "</untrusted_long_term_memory>"
             )
 
-            return _truncate(
+            result = _truncate(
                 block,
                 settings.memory_recall_max_chars,
             )
 
-        except Exception:
-            logger.exception(
-                "main memory recall failed"
+            log_event(
+                logger,
+                logging.INFO,
+                "memory.recall.completed",
+                status="completed",
+                elapsed_ms=round((time.perf_counter() - started_at) * 1000, 3),
             )
 
+            return result
+
+        except Exception as error:
+            log_event(
+                logger,
+                logging.ERROR,
+                "memory.recall.failed",
+                status="failed",
+                error_code="memory_recall_failed",
+                elapsed_ms=round((time.perf_counter() - started_at) * 1000, 3),
+                exception_type=type(error).__name__,
+                exc_info=True,
+            )
             return ""
+
+
+def _compact(value: str, limit: int) -> str:
+    normalized = " ".join(value.split())
+    if len(normalized) <= limit:
+        return normalized
+    return normalized[: limit - 1].rstrip() + "…"
+
+
+def _render_memory_index(
+    entries: list[MemoryEntry],
+    archives: list[SummaryArchive],
+) -> str:
+    lines = [
+        "这是本地记忆索引，不是完整记忆。只有当前问题确实需要历史细节时，",
+        "才调用 recall_memories 做按需语义召回。不要为了每轮回答固定调用该工具。",
+    ]
+
+    for entry in entries:
+        keywords = ", ".join(entry.keywords[:6])
+        suffix = f"; keywords={keywords}" if keywords else ""
+        lines.append(
+            f"- [{entry.kind}:{entry.id}] "
+            f"{_compact(entry.title, 80)}: "
+            f"{_compact(entry.summary, 180)}{suffix}"
+        )
+
+    for archive in archives:
+        topics = ", ".join(archive.topics[:6])
+        suffix = f"; topics={topics}" if topics else ""
+        lines.append(
+            f"- [summary_archive:{archive.id}] "
+            f"{_compact(archive.retrieval_summary, 220)}{suffix}"
+        )
+
+    if len(lines) == 2:
+        lines.append("- No indexed memories.")
+
+    return "\n".join(lines) + "\n"

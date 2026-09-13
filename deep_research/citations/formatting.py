@@ -36,7 +36,7 @@ def _has_sources_heading(answer: str) -> bool:
         answer,
     ) is not None
 
-
+# 增加引用
 def append_verified_sources(
     answer: str,
     sources: Mapping[str, PersistentSource],

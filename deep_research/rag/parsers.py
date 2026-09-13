@@ -3,6 +3,14 @@ from pathlib import Path
 from langchain_core.documents import Document
 from pypdf import PdfReader
 
+
+def _sanitize_extracted_text(text: str) -> str:
+    """Replace unpaired Unicode surrogates emitted by some PDF fonts."""
+    return "".join(
+        "�" if 0xD800 <= ord(char) <= 0xDFFF else char
+        for char in text
+    )
+
 # 读取 UTF-8 文件
 #   ↓
 # 转换成 LangChain Document
@@ -57,7 +65,7 @@ def parse_pdf_document(
         start=1,
     ):  
         text = page.extract_text() or ""    # extract_text() 可能返回 None（某些加密/扫描页），or "" 兜底。
-        text = text.strip()
+        text = _sanitize_extracted_text(text).strip()
 
         if not text:
             continue

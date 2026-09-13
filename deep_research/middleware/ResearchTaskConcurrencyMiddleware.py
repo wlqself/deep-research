@@ -1,4 +1,7 @@
 import json
+import logging
+
+from ..log.logging_utils import log_event
 from collections.abc import Awaitable, Callable
 
 from langchain.agents.middleware.types import (
@@ -10,6 +13,9 @@ from langgraph.types import Command
 
 from ..context import ResearchContext
 
+logger = logging.getLogger(
+    "deep_research.subagent"
+)
 
 class ResearchTaskConcurrencyMiddleware(AgentMiddleware):
     @staticmethod
@@ -48,6 +54,21 @@ class ResearchTaskConcurrencyMiddleware(AgentMiddleware):
             return handler(request)
 
         if not context.try_acquire_research_task_slot():
+            log_event(
+                logger,
+                logging.WARNING,
+                "subagent.task.rejected",
+                task_id=str(
+                    request.tool_call.get(
+                        "id",
+                        "",
+                    )
+                ),
+                status="rejected",
+                error_code=(
+                    "parallel_task_limit_reached"
+                ),
+            )
             return self._rejected(request)
 
         try:
@@ -72,6 +93,21 @@ class ResearchTaskConcurrencyMiddleware(AgentMiddleware):
                 return await handler(request)
 
             if not context.try_acquire_research_task_slot():
+                log_event(
+                    logger,
+                    logging.WARNING,
+                    "subagent.task.rejected",
+                    task_id=str(
+                        request.tool_call.get(
+                            "id",
+                            "",
+                        )
+                    ),
+                    status="rejected",
+                    error_code=(
+                        "parallel_task_limit_reached"
+                    ),
+                )
                 return self._rejected(request)
 
             try:

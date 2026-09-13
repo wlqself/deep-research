@@ -19,6 +19,7 @@ finalize_document_file
 
 import asyncio
 import logging
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
@@ -38,6 +39,7 @@ from .storage import (
 )
 from .chunking import chunk_documents
 from .parsers import parse_document
+from ..log.logging_utils import log_event
 
 
 logger = logging.getLogger(__name__)
@@ -188,6 +190,7 @@ def prepare_document_chunks(
     record: DocumentRecord,
     chunk_size: int,
     chunk_overlap: int,
+    parent_size: int = 4,
 ) -> tuple[list[Document], int]:
     documents, page_count = parse_document(
         path,
@@ -202,6 +205,7 @@ def prepare_document_chunks(
         document_hash=record["sha256"],
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
+        parent_size=parent_size,
     )
 
     return chunks, page_count
@@ -214,13 +218,24 @@ async def index_document(
     rag_service: RagService,
     chunk_size: int,
     chunk_overlap: int,
+    parent_size: int = 4,
 ) -> DocumentRecord:
+    started_at = time.perf_counter()
+
     # 1. 先更新为 processing
     await asyncio.to_thread(
         registry.update_document_status,
         record["document_id"],
         status="processing",
         updated_at=_utc_now(),
+    )
+
+    log_event(
+        logger,
+        logging.INFO,
+        "rag.document.index.started",
+        document_id=record["document_id"],
+        status="started",
     )
     """
     成功顺序是：
@@ -240,6 +255,7 @@ async def index_document(
             record=record,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
+            parent_size=parent_size,
         )
         # 3. 写入并验证数量
         written_count = await asyncio.to_thread(
@@ -269,6 +285,22 @@ async def index_document(
             updated_at=updated_at,
         )
 
+        log_event(
+            logger,
+            logging.INFO,
+            "rag.document.indexed",
+            document_id=record["document_id"],
+            status="completed",
+            elapsed_ms=round(
+                (
+                    time.perf_counter()
+                    - started_at
+                )
+                * 1000,
+                3,
+            ),
+        )
+
         return {
             **record,
             "status": "indexed",
@@ -278,10 +310,24 @@ async def index_document(
         }
 
     # 6. 失败清理
-    except Exception:
-        logger.exception(
-            "document indexing failed: document_id=%s",
-            record["document_id"],
+    except Exception as error:
+        log_event(
+            logger,
+            logging.ERROR,
+            "rag.document.index.failed",
+            document_id=record["document_id"],
+            status="failed",
+            error_code="indexing_failed",
+            exception_type=type(error).__name__,
+            elapsed_ms=round(
+                (
+                    time.perf_counter()
+                    - started_at
+                )
+                * 1000,
+                3,
+            ),
+            exc_info=True,
         )
         try:
             # 删除向量
@@ -329,8 +375,11 @@ async def reindex_document(
     rag_service: RagService,
     chunk_size: int,
     chunk_overlap: int,
+    parent_size: int = 4,
 ) -> DocumentRecord:
     document_id = record["document_id"]
+    started_at = time.perf_counter()
+
     # 更新状态并加上时间
     await asyncio.to_thread(
         registry.update_document_status,
@@ -339,6 +388,13 @@ async def reindex_document(
         updated_at=_utc_now(),
     )
 
+    log_event(
+        logger,
+        logging.INFO,
+        "rag.document.reindex.started",
+        document_id=document_id,
+        status="started",
+    )
     try:
         # 旧 Chunk 先变成不可检索状态
         await asyncio.to_thread(
@@ -353,19 +409,52 @@ async def reindex_document(
         )
 
         # 重新解析、切 Chunk、Embedding、写入
-        return await index_document(
+        result = await index_document(
             path=path,
             record=record,
             registry=registry,
             rag_service=rag_service,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
+            parent_size=parent_size,
         )
 
-    except Exception:
-        logger.exception(
-            "document reindex failed: document_id=%s",
-            document_id,
+        log_event(
+            logger,
+            logging.INFO,
+            "rag.document.reindexed",
+            document_id=document_id,
+            status="completed",
+            elapsed_ms=round(
+                (
+                    time.perf_counter()
+                    - started_at
+                )
+                * 1000,
+                3,
+            ),
+        )
+
+        return result
+
+    except Exception as error:
+        log_event(
+            logger,
+            logging.ERROR,
+            "rag.document.reindex.failed",
+            document_id=document_id,
+            status="failed",
+            error_code="reindex_failed",
+            exception_type=type(error).__name__,
+            elapsed_ms=round(
+                (
+                    time.perf_counter()
+                    - started_at
+                )
+                * 1000,
+                3,
+            ),
+            exc_info=True,
         )
         # 失败的时候更新状态
         await asyncio.to_thread(

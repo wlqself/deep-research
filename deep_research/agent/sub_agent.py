@@ -13,7 +13,7 @@ from ..tools import (
 )
 from .results import ResearcherResult
 
-
+# 子 Agent 的工厂函数
 def build_researcher(
     model: Any,
     rag_service=None,

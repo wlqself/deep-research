@@ -1,5 +1,8 @@
 import hashlib
 import json
+import logging
+
+from ..log.logging_utils import log_event
 from datetime import datetime, timezone
 from urllib.parse import quote
 
@@ -17,14 +20,23 @@ from ..citations import (
     append_verified_sources,
     invalid_source_ids,
 )
+from ..log.log_audit import audit_event
 
+logger = logging.getLogger(
+    "deep_research.artifact"
+)
 @tool
 def save_report(
     title: str,
     content: str,
     runtime: ToolRuntime[ResearchContext],
 ) -> dict[str, object] | Command:
-    """Save an explicitly requested Markdown report to the current thread."""
+    """Save Markdown explicitly requested by the user or required for publishing.
+
+    When the user asks to research and then publish in one request, saving the
+    cited findings as an Artifact is an authorized prerequisite. Return the
+    actual ``artifact_id`` for the next publishing tool; never invent one.
+    """
 
     normalized_title = title.strip()
 
@@ -100,6 +112,14 @@ def save_report(
     )
     # 把文件内容作为 State 的一部分，存进了 LangGraph 的 Checkpointer
     if write_result.error:
+        log_event(
+            logger,
+            logging.ERROR,
+            "artifact.save.failed",
+            thread_id=str(thread_id),
+            status="failed",
+            error_code="artifact_write_failed",
+        )
         return {
             "ok": False,
             "error": "save_failed",
@@ -134,7 +154,20 @@ def save_report(
             f"{metadata['artifact_id']}"
         ),
     }
-
+    log_event(
+        logger,
+        logging.INFO,
+        "artifact.saved",
+        thread_id=str(thread_id),
+        artifact_id=metadata["artifact_id"],
+        status="completed",
+    )
+    audit_event(
+        "report.save",
+        "completed",
+        thread_id=str(thread_id),
+        artifact_id=metadata["artifact_id"],
+    )
     return Command(
         update={
             "artifacts": {

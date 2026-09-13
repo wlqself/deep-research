@@ -9,16 +9,28 @@ from deep_research.middleware.recall_middleware import (
 )
 
 
-def make_entry() -> MemoryEntry:
+def make_entry(
+    *,
+    kind: str = "user",
+    entry_id: str = "memory-1",
+) -> MemoryEntry:
     return MemoryEntry.model_validate(
         {
-            "id": "memory-1",
-            "memory_key": "user.answer_style.conciseness",
+            "id": entry_id,
+            "memory_key": f"{kind}.answer_style.conciseness",
             "scope": "global",
-            "kind": "user",
-            "title": "Answer style",
-            "summary": "The user prefers concise answers.",
-            "content": "Prefer concise answers.",
+            "kind": kind,
+            "title": "Answer style" if kind == "user" else "Project decision",
+            "summary": (
+                "The user prefers concise answers."
+                if kind == "user"
+                else "The project uses a local memory index."
+            ),
+            "content": (
+                "Prefer concise answers."
+                if kind == "user"
+                else "Use local index lookup before semantic recall."
+            ),
             "keywords": ["concise"],
             "source_type": "explicit_user",
             "source_thread_id": "thread-1",
@@ -49,13 +61,21 @@ def make_archive() -> SummaryArchive:
 class FakeMemoryService:
     def __init__(self, archives: list[SummaryArchive] | None = None) -> None:
         self.user_calls = 0
-        self.related_calls = 0
+        self.list_calls = 0
+        self.semantic_calls = 0
+        self.archive_list_calls = 0
         self.recall_revision = 0
         self.archives = archives or []
 
     async def list_active_memories(self, **kwargs: object) -> list[MemoryEntry]:
-        self.user_calls += 1
-        return [make_entry()]
+        self.list_calls += 1
+        if kwargs.get("kind") == "user":
+            self.user_calls += 1
+            return [make_entry()]
+        return [
+            make_entry(),
+            make_entry(kind="project", entry_id="project-1"),
+        ]
 
     async def find_review_memories(
         self,
@@ -63,16 +83,16 @@ class FakeMemoryService:
         *,
         limit: int,
     ) -> list[MemoryEntry]:
-        self.related_calls += 1
-        return []
+        self.semantic_calls += 1
+        raise AssertionError("automatic recall must not use embeddings")
 
-    async def search_summary_archives(
+    async def list_recallable_summary_archives(
         self,
-        query: str,
         *,
         limit: int,
     ) -> list[SummaryArchive]:
-        return self.archives
+        self.archive_list_calls += 1
+        return [archive for archive in self.archives if archive.recallable]
 
 
 class FailingMemoryService:
@@ -90,6 +110,13 @@ class FailingMemoryService:
     async def search_summary_archives(
         self,
         query: str,
+        *,
+        limit: int,
+    ) -> list[SummaryArchive]:
+        raise RuntimeError("memory unavailable")
+
+    async def list_recallable_summary_archives(
+        self,
         *,
         limit: int,
     ) -> list[SummaryArchive]:
@@ -125,13 +152,15 @@ class MemoryRecallMiddlewareTests(unittest.IsolatedAsyncioTestCase):
         await middleware.awrap_model_call(request, handler)
 
         self.assertEqual(service.user_calls, 1)
-        self.assertEqual(service.related_calls, 1)
+        self.assertEqual(service.list_calls, 2)
+        self.assertEqual(service.semantic_calls, 0)
+        self.assertEqual(service.archive_list_calls, 1)
         self.assertEqual(len(seen_requests), 2)
         self.assertIn("Base system prompt", seen_requests[0].system_message.text)
         self.assertIn("Answer style", seen_requests[0].system_message.text)
         self.assertEqual(len(seen_requests[0].messages), 1)
 
-    async def test_new_user_message_invalidates_turn_cache(self):
+    async def test_new_user_message_reuses_revision_scoped_local_index(self):
         service = FakeMemoryService()
         middleware = MainMemoryRecallMiddleware(service)
 
@@ -147,8 +176,9 @@ class MemoryRecallMiddlewareTests(unittest.IsolatedAsyncioTestCase):
             handler,
         )
 
-        self.assertEqual(service.user_calls, 2)
-        self.assertEqual(service.related_calls, 2)
+        self.assertEqual(service.user_calls, 1)
+        self.assertEqual(service.list_calls, 2)
+        self.assertEqual(service.semantic_calls, 0)
 
     async def test_store_revision_invalidates_same_turn_cache(self):
         service = FakeMemoryService()
@@ -164,7 +194,8 @@ class MemoryRecallMiddlewareTests(unittest.IsolatedAsyncioTestCase):
         await middleware.awrap_model_call(request, handler)
 
         self.assertEqual(service.user_calls, 2)
-        self.assertEqual(service.related_calls, 2)
+        self.assertEqual(service.list_calls, 4)
+        self.assertEqual(service.semantic_calls, 0)
 
     async def test_summary_archive_is_injected_as_related_memory(self):
         service = FakeMemoryService([make_archive()])
@@ -184,6 +215,8 @@ class MemoryRecallMiddlewareTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("Summary Archive", system_text)
         self.assertNotIn("Original summary.", system_text)
         self.assertIn("Archived project decision.", system_text)
+        self.assertIn("Project decision", system_text)
+        self.assertIn("recall_memories", system_text)
 
     async def test_legacy_archive_is_excluded_from_main_prompt(self):
         legacy_archive = make_archive().model_copy(

@@ -20,6 +20,7 @@ ALLOWED_MIME_TYPES = {
     ".markdown": "text/markdown",
 }
 
+# 创建文件的安全文件名和路径
 def build_document_path(
     documents_root: str,
     document_id: str,
@@ -66,6 +67,7 @@ def build_document_path(
         )
     return safe_filename, document_path
 
+# 识别上传文件类型
 def validate_upload_type(
         filename: str,
         content_type: str,
@@ -96,6 +98,7 @@ def validate_upload_type(
 
     return extension
 
+# 原子写入
 async def write_upload_to_temp(
     upload: UploadFile,
     temp_dir: str,
@@ -150,6 +153,7 @@ async def write_upload_to_temp(
             )
         raise
 
+# 文件路径处理
 def finalize_document_file(
     temporary_path: Path,
     document_path: Path,
@@ -164,21 +168,22 @@ def finalize_document_file(
         raise FileNotFoundError(
             "temporary upload does not exist"
         )
-
+    # 若没有父目录，创建父目录，防止失败
     document_path.parent.mkdir(
         parents=True,
         exist_ok=True,
     )
-
+    #若路径已经存在，则向上级返回错误
     if document_path.exists():
         raise FileExistsError(
             "document path already exists"
         )
-
+    
     temporary_path.rename(document_path)
 
     return document_path
 
+# 生成期望存储路径
 def resolve_document_path(
     documents_root: str,
     document_id: str,

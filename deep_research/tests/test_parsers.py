@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from pypdf import PdfWriter
 
@@ -161,6 +162,35 @@ class MarkdownParserTests(unittest.TestCase):
 
 
 class UnifiedParserTests(unittest.TestCase):
+    def test_pdf_parser_sanitizes_unpaired_unicode_surrogates(self):
+        class FakePage:
+            def extract_text(self):
+                return "正常文本\ud835之后的文本"
+
+        class FakeReader:
+            pages = [FakePage()]
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "surrogate.pdf"
+            path.write_bytes(b"not-used-by-fake-reader")
+
+            with patch(
+                "deep_research.rag.parsers.PdfReader",
+                return_value=FakeReader(),
+            ):
+                documents, page_count = parse_document(
+                    path,
+                    document_id="doc-1",
+                    collection_id="deep_research_documents",
+                    filename="surrogate.pdf",
+                    mime_type="application/pdf",
+                )
+
+        self.assertEqual(page_count, 1)
+        self.assertEqual(len(documents), 1)
+        self.assertNotIn("\ud835", documents[0].page_content)
+        self.assertIn("�", documents[0].page_content)
+
     def test_txt_dispatch_returns_one_page(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             path = Path(temp_dir) / "guide.txt"

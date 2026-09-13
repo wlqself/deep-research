@@ -1,7 +1,6 @@
 from langchain.agents import create_agent
 from langchain.agents.middleware import (
     TodoListMiddleware,
-    SummarizationMiddleware,
 )
 from deepagents.backends import StateBackend
 from deepagents.middleware import SubAgentMiddleware
@@ -9,6 +8,7 @@ from deepagents.middleware.filesystem import FilesystemMiddleware
 
 from ..context import ResearchContext
 from deep_research.middleware import (
+    LocalTokenSummarizationMiddleware,
     ResearchTaskConcurrencyMiddleware,
 )
 from ..state import ResearchState
@@ -27,13 +27,30 @@ from ..prompts.todo import (
 
 from ..prompts.workspace import WORKSPACE_SYSTEM_PROMPT
 from .sub_agent import build_researcher
-from .model import model
+from .model import (
+    model as configured_main_model,
+    researcher_model as configured_researcher_model,
+)
 from ..config import settings
 from ..middleware.recall_middleware import (
     MainMemoryRecallMiddleware,
 )
 
-def build_agent(checkpointer, rag_service=None,memory_service=None,):
+# Backward-compatible patch point used by existing tests and local callers.
+model = configured_main_model
+
+def build_agent(
+    checkpointer,
+    rag_service=None,
+    memory_service=None,
+    publishing_service=None,
+    hitl_service=None,
+    image_attachment_service=None,
+    image_analysis_service=None,
+    wechat_cover_service=None,
+    image_generation_service=None,
+):
+    # 创建文件系统中间件
     filesystem_middleware = FilesystemMiddleware(
         backend=StateBackend(),
         tools=[
@@ -45,7 +62,16 @@ def build_agent(checkpointer, rag_service=None,memory_service=None,):
         ],
     )
 
-    researcher = build_researcher(model, rag_service)
+    main_agent_model = model
+    research_agent_model = (
+        configured_researcher_model
+        if main_agent_model is configured_main_model
+        else main_agent_model
+    )
+    researcher = build_researcher(
+        research_agent_model,
+        rag_service,
+    )
 
     main_memory_middleware = []
 
@@ -55,11 +81,18 @@ def build_agent(checkpointer, rag_service=None,memory_service=None,):
                 memory_service
             )
         )
-        
+
     return create_agent(
-        model=model,
+        model=main_agent_model,
         tools=build_supervisor_tools(
             memory_service,
+            publishing_service,
+            hitl_service,
+            enable_native_interrupt=True,
+            image_attachment_service=image_attachment_service,
+            image_analysis_service=image_analysis_service,
+            wechat_cover_service=wechat_cover_service,
+            image_generation_service=image_generation_service,
         ),
         system_prompt=(
             f"{SUPERVISOR_SYSTEM_PROMPT}\n\n"
@@ -83,6 +116,7 @@ def build_agent(checkpointer, rag_service=None,memory_service=None,):
                         "last_reviewed_message_id",
                         "last_archived_summary_hash",
                         "memory_review_backlog_pending",
+                        "image_attachment_ids",
                     }
                 ),
                 state_schema=ResearchState,
@@ -92,8 +126,8 @@ def build_agent(checkpointer, rag_service=None,memory_service=None,):
                 tool_description=TODO_TOOL_DESCRIPTION,
             ),
             *main_memory_middleware,
-            SummarizationMiddleware(
-                model=model,
+            LocalTokenSummarizationMiddleware(
+                model=main_agent_model,
                 trigger=("tokens", settings.memory_trigger_tokens),
                 keep=("messages", settings.memory_keep_messages),
                 summary_prompt=SUMMARY_PROMPT,

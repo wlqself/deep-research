@@ -1,0 +1,541 @@
+{
+  "version": "rag-eval-query-seeds-v1",
+  "description": "Human-reviewable query and relevance seeds resolved against generated corpus chunk IDs.",
+  "queries": [
+    {
+      "query_id": "q01",
+      "query": "什么是 agentic computation graph，它里面的节点和边分别表示什么？",
+      "type": "semantic",
+      "difficulty": "medium",
+      "answerable": true,
+      "expected_answer": "ACG 将以 LLM 为中心的工作流表示为图，节点执行原子动作，边表示控制、数据或通信依赖。",
+      "expected_facts": ["ACG 是 LLM 工作流的图表示", "节点执行原子动作", "边表示依赖关系"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-2603-22386-v1", "chunk_index": 19, "grade": 2},
+        {"document_id": "eval-pdf-2603-22386-v1", "chunk_index": 7, "grade": 1}
+      ],
+      "tags": ["agent-workflow", "acg", "multi-relevant"]
+    },
+    {
+      "query_id": "q02",
+      "query": "workflow template、realized graph 和 execution trace 有什么区别？",
+      "type": "exact-term",
+      "difficulty": "medium",
+      "answerable": true,
+      "expected_answer": "template 是可复用规范，realized graph 是某次运行实际采用的结构，trace 是执行过程中的状态、动作、观察和成本序列。",
+      "expected_facts": ["template 可复用", "realized graph 针对一次运行", "trace 记录执行过程"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-2603-22386-v1", "chunk_index": 7, "grade": 2}
+      ],
+      "tags": ["workflow", "trace", "exact-term"]
+    },
+    {
+      "query_id": "q03",
+      "query": "评测 agent workflow 时，除了最终答案还应该报告哪些成本和结构指标？",
+      "type": "semantic",
+      "difficulty": "hard",
+      "answerable": true,
+      "expected_answer": "除了效果，还应报告工具调用、延迟、成本，以及图的大小、深度、宽度、关键路径和通信量等结构指标。",
+      "expected_facts": ["报告工具调用和延迟", "报告 monetary cost", "报告图级结构指标"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-2603-22386-v1", "chunk_index": 67, "grade": 2},
+        {"document_id": "eval-pdf-2603-22386-v1", "chunk_index": 70, "grade": 1}
+      ],
+      "tags": ["evaluation", "cost", "workflow-metrics", "multi-relevant"]
+    },
+    {
+      "query_id": "q04",
+      "query": "一个严谨的 workflow benchmark 最低需要固定和记录哪些内容？",
+      "type": "exact-term",
+      "difficulty": "hard",
+      "answerable": true,
+      "expected_answer": "需要明确任务规格、评测 harness、预算、工具和旁路信息，并记录模型、工具、训练成本和在线推理成本。",
+      "expected_facts": ["任务规格稳定", "预算和工具边界明确", "记录模型工具和推理成本"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-2603-22386-v1", "chunk_index": 68, "grade": 2},
+        {"document_id": "eval-pdf-2603-22386-v1", "chunk_index": 70, "grade": 1}
+      ],
+      "tags": ["benchmark", "reporting", "hard-negative"]
+    },
+    {
+      "query_id": "q05",
+      "query": "workflow 的鲁棒性应该如何测试，而不是只测正常输入？",
+      "type": "semantic",
+      "difficulty": "hard",
+      "answerable": true,
+      "expected_answer": "应加入改写、工具失败、检索噪声、API 或 schema 漂移等扰动测试。",
+      "expected_facts": ["测试 paraphrase invariance", "注入工具失败", "测试检索噪声和 schema drift"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-2603-22386-v1", "chunk_index": 67, "grade": 2}
+      ],
+      "tags": ["robustness", "perturbation"]
+    },
+    {
+      "query_id": "q06",
+      "query": "Externalization 这篇综述把 LLM agent 的外部化分成哪几个维度？",
+      "type": "exact-term",
+      "difficulty": "easy",
+      "answerable": true,
+      "expected_answer": "主要包括 Memory、Skills 和 Protocols，分别对应外部化状态、程序性 expertise 和交互。",
+      "expected_facts": ["Memory", "Skills", "Protocols"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-2604-08224-v1", "chunk_index": 11, "grade": 2},
+        {"document_id": "eval-pdf-2604-08224-v1", "chunk_index": 12, "grade": 1}
+      ],
+      "tags": ["externalization", "memory", "skills", "protocols", "multi-relevant"]
+    },
+    {
+      "query_id": "q07",
+      "query": "为什么长上下文和更多 prompt 不能单独解决 long-horizon agent 的问题？",
+      "type": "semantic",
+      "difficulty": "hard",
+      "answerable": true,
+      "expected_answer": "因为长期任务还需要持久化状态、调度多步骤流程、协调子 agent、从部分失败中恢复并执行行为约束。",
+      "expected_facts": ["状态会累积", "需要多工具协调", "需要持久化和故障恢复"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-2604-08224-v1", "chunk_index": 30, "grade": 2},
+        {"document_id": "eval-pdf-2604-08224-v1", "chunk_index": 35, "grade": 1}
+      ],
+      "tags": ["long-horizon", "context", "harness", "multi-relevant"]
+    },
+    {
+      "query_id": "q08",
+      "query": "procedural skill 可以通过哪些路径进入 agent 系统？",
+      "type": "semantic",
+      "difficulty": "medium",
+      "answerable": true,
+      "expected_answer": "可以由专家编写、从 episodic memory 和轨迹中蒸馏、通过环境探索发现，或由已有单元组合而成。",
+      "expected_facts": ["专家编写", "轨迹蒸馏", "环境探索发现", "已有单元组合"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-2604-08224-v1", "chunk_index": 62, "grade": 2}
+      ],
+      "tags": ["skills", "skill-acquisition"]
+    },
+    {
+      "query_id": "q09",
+      "query": "当日志反复暴露瓶颈时，harness 可以从哪些层面进行调整？",
+      "type": "semantic",
+      "difficulty": "hard",
+      "answerable": true,
+      "expected_answer": "可以调整调度策略、执行顺序和资源分配，也可以改变 harness 的模块连接方式。",
+      "expected_facts": ["调整 scheduling", "调整 execution order", "调整 resource allocation", "重构模块连接"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-2604-08224-v1", "chunk_index": 176, "grade": 2}
+      ],
+      "tags": ["logs", "harness", "adaptation"]
+    },
+    {
+      "query_id": "q10",
+      "query": "如果 agent 进入多轮长任务，为什么需要把部分能力从 weights 外移到 infrastructure？",
+      "type": "semantic",
+      "difficulty": "medium",
+      "answerable": true,
+      "expected_answer": "因为单靠模型参数难以稳定管理累积状态、程序和交互规则，基础设施可以把这些负担显式化并持久化。",
+      "expected_facts": ["weights 难管理长期状态", "基础设施承载外部化能力"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-2604-08224-v1", "chunk_index": 30, "grade": 2},
+        {"document_id": "eval-pdf-2604-08224-v1", "chunk_index": 35, "grade": 1}
+      ],
+      "tags": ["externalization", "infrastructure"]
+    },
+    {
+      "query_id": "q11",
+      "query": "这篇综述如何理解 logs 对 agent 系统演化的作用？",
+      "type": "semantic",
+      "difficulty": "medium",
+      "answerable": true,
+      "expected_answer": "日志暴露重复性失败和瓶颈，系统可以据此调整策略、代码、拓扑或 harness 边界。",
+      "expected_facts": ["日志提供失败证据", "日志支持策略和结构调整"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-2604-08224-v1", "chunk_index": 176, "grade": 2}
+      ],
+      "tags": ["logs", "feedback-loop"]
+    },
+    {
+      "query_id": "q12",
+      "query": "CVIU 论文对 YOLO26 中 Mamba 的总体结论是什么？",
+      "type": "semantic",
+      "difficulty": "medium",
+      "answerable": true,
+      "expected_answer": "复合分支在开发集上的改进没有在 held-out 数据上稳定复现，因此没有形成 Mamba 特异性优势的可复现证据。",
+      "expected_facts": ["开发集收益不稳定", "held-out 未稳定复现", "不能证明 Mamba 特异性优势"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-cviu-anonymous-manuscript-v3", "chunk_index": 0, "grade": 2},
+        {"document_id": "eval-pdf-cviu-anonymous-manuscript-v3", "chunk_index": 1, "grade": 1}
+      ],
+      "tags": ["mamba", "yolo26", "main-result", "multi-relevant"]
+    },
+    {
+      "query_id": "q13",
+      "query": "C0、C1-W 和 C1-C8 三个 YOLO26 变体分别承担什么实验角色？",
+      "type": "exact-term",
+      "difficulty": "medium",
+      "answerable": true,
+      "expected_answer": "C0 是未修改基线，C1-W 加入 Mamba 分支，C1-C8 保留分支外壳但用近参数匹配的 Conv1d 替换 Mamba。",
+      "expected_facts": ["C0 是 baseline", "C1-W 使用 Mamba", "C1-C8 使用 Conv1d 对照"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-cviu-anonymous-manuscript-v3", "chunk_index": 5, "grade": 2},
+        {"document_id": "eval-pdf-cviu-anonymous-manuscript-v3", "chunk_index": 11, "grade": 1}
+      ],
+      "tags": ["mamba", "controls", "exact-term", "multi-relevant"]
+    },
+    {
+      "query_id": "q14",
+      "query": "三个预定义归因效应 C1-W−C0、C1-C8−C0 和 C1-W−C1-C8 分别回答什么问题？",
+      "type": "exact-term",
+      "difficulty": "hard",
+      "answerable": true,
+      "expected_answer": "它们分别表示完整 Mamba 分支效应、匹配局部分支效应和在共享外壳内替换 mixer 的 Mamba substitution effect。",
+      "expected_facts": ["完整分支效应", "局部分支效应", "Mamba substitution effect"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-cviu-anonymous-manuscript-v3", "chunk_index": 9, "grade": 2}
+      ],
+      "tags": ["attribution", "causal-contrast", "exact-term"]
+    },
+    {
+      "query_id": "q15",
+      "query": "为什么 C1-C8 被称为 matched control，而不是简单的 ablation？",
+      "type": "semantic",
+      "difficulty": "hard",
+      "answerable": true,
+      "expected_answer": "因为它保持插入位置、池化、tokenization、LayerNorm、投影、残差门控、初始化和训练契约，只替换 mixer，并且参数量接近。",
+      "expected_facts": ["只改变 mixer", "共享外围结构", "参数量近似匹配"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-cviu-anonymous-manuscript-v3", "chunk_index": 12, "grade": 2},
+        {"document_id": "eval-pdf-cviu-anonymous-manuscript-v3", "chunk_index": 19, "grade": 1}
+      ],
+      "tags": ["matched-control", "ablation", "hard-negative", "multi-relevant"]
+    },
+    {
+      "query_id": "q16",
+      "query": "这项研究如何防止 held-out 测试集被反复调参污染？",
+      "type": "semantic",
+      "difficulty": "hard",
+      "answerable": true,
+      "expected_answer": "checkpoint 只根据 development 选择，之后冻结架构、指标和决策规则，held-out 只进行一次评估，结果不用于继续调参。",
+      "expected_facts": ["只用 development 选 checkpoint", "冻结评测契约", "held-out 不参与调参"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-cviu-anonymous-manuscript-v3", "chunk_index": 10, "grade": 2},
+        {"document_id": "eval-pdf-cviu-anonymous-manuscript-v3", "chunk_index": 12, "grade": 1}
+      ],
+      "tags": ["held-out", "evaluation-protocol", "leakage"]
+    },
+    {
+      "query_id": "q17",
+      "query": "CVIU 实验使用了多少个随机种子，为什么要配对？",
+      "type": "exact-term",
+      "difficulty": "medium",
+      "answerable": true,
+      "expected_answer": "实验使用随机种子 0、1、2，并在相同数据集和 seed 下共享兼容初始化，以减少随机性对变体比较的干扰。",
+      "expected_facts": ["使用 seeds 0、1、2", "同一 seed 下共享初始化", "进行 paired comparison"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-cviu-anonymous-manuscript-v3", "chunk_index": 19, "grade": 2}
+      ],
+      "tags": ["random-seed", "paired-evaluation"]
+    },
+    {
+      "query_id": "q18",
+      "query": "YOLO26 Mamba 研究为什么同时使用 development 和 held-out 分区？",
+      "type": "semantic",
+      "difficulty": "medium",
+      "answerable": true,
+      "expected_answer": "development 用于选择 checkpoint，held-out 用于在冻结协议下检验泛化和归因是否可复现。",
+      "expected_facts": ["development 用于选择", "held-out 用于独立泛化评估"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-cviu-anonymous-manuscript-v3", "chunk_index": 10, "grade": 2},
+        {"document_id": "eval-pdf-yolo26-mamba-attribution", "chunk_index": 3, "grade": 1}
+      ],
+      "tags": ["development", "held-out", "generalization", "multi-document"]
+    },
+    {
+      "query_id": "q19",
+      "query": "这项研究的证据记录如何支持可复现性？",
+      "type": "semantic",
+      "difficulty": "hard",
+      "answerable": true,
+      "expected_answer": "研究记录了训练参数、数据和源码哈希、环境、checkpoint、计时、评测清单以及开始和完成记录。",
+      "expected_facts": ["记录 SHA256 身份", "记录环境和 checkpoint", "保留评测 campaign 记录"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-cviu-anonymous-manuscript-v3", "chunk_index": 26, "grade": 2},
+        {"document_id": "eval-pdf-yolo26-mamba-attribution", "chunk_index": 7, "grade": 1}
+      ],
+      "tags": ["reproducibility", "evidence", "multi-document"]
+    },
+    {
+      "query_id": "q20",
+      "query": "为什么这项研究不能据此声称 Mamba 在所有目标检测任务中都无效？",
+      "type": "semantic",
+      "difficulty": "hard",
+      "answerable": true,
+      "expected_answer": "因为实验只覆盖特定模型尺度、插入点、配置和交通数据集，三种 seed 也只支持描述性结论。",
+      "expected_facts": ["实验范围有限", "不能推广到所有检测器", "三 seed 只支持描述性分析"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-yolo26-mamba-attribution", "chunk_index": 8, "grade": 2},
+        {"document_id": "eval-pdf-cviu-anonymous-manuscript-v3", "chunk_index": 10, "grade": 1}
+      ],
+      "tags": ["limitations", "generalization", "negative-result"]
+    },
+    {
+      "query_id": "q21",
+      "query": "YOLO26 Mamba 汇报材料给出的研究一句话结论是什么？",
+      "type": "semantic",
+      "difficulty": "easy",
+      "answerable": true,
+      "expected_answer": "两个数据集上的开发集小幅收益没有在独立测试分区稳定复现，Mamba 相对局部 Conv1d 也没有可复现的精度优势。",
+      "expected_facts": ["开发集收益未稳定复现", "没有可复现的 Mamba 精度优势"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-yolo26-mamba-attribution", "chunk_index": 0, "grade": 2}
+      ],
+      "tags": ["yolo26", "summary"]
+    },
+    {
+      "query_id": "q22",
+      "query": "YOLO26 项目中三个模型的核心差异是什么？",
+      "type": "exact-term",
+      "difficulty": "medium",
+      "answerable": true,
+      "expected_answer": "C0 不增加序列分支，C1-W 使用 packed bidirectional Mamba，C1-C8 使用 kernel-8 Conv1d 作为近参数匹配对照。",
+      "expected_facts": ["C0 无序列分支", "C1-W 使用 Mamba", "C1-C8 使用 kernel-8 Conv1d"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-yolo26-mamba-attribution", "chunk_index": 1, "grade": 2}
+      ],
+      "tags": ["yolo26", "model-variants", "exact-term"]
+    },
+    {
+      "query_id": "q23",
+      "query": "YOLO26 研究中三个归因效应的计算方式是什么？",
+      "type": "exact-term",
+      "difficulty": "hard",
+      "answerable": true,
+      "expected_answer": "完整分支效应是 C1-W−C0，匹配局部分支效应是 C1-C8−C0，Mamba 替换效应是 C1-W−C1-C8。",
+      "expected_facts": ["C1-W−C0", "C1-C8−C0", "C1-W−C1-C8"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-yolo26-mamba-attribution", "chunk_index": 2, "grade": 2}
+      ],
+      "tags": ["attribution", "formula", "exact-term"]
+    },
+    {
+      "query_id": "q24",
+      "query": "YOLO26 实验为什么要使用三个随机种子和一次性独立评估？",
+      "type": "semantic",
+      "difficulty": "hard",
+      "answerable": true,
+      "expected_answer": "多个 paired seeds 用来观察随机性，独立 held-out 评估用于避免根据测试结果重新训练、调阈值或挑模型。",
+      "expected_facts": ["3 个 paired seeds", "冻结后一次性测试", "测试结果不参与调参"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-yolo26-mamba-attribution", "chunk_index": 3, "grade": 2},
+        {"document_id": "eval-pdf-cviu-anonymous-manuscript-v3", "chunk_index": 10, "grade": 1}
+      ],
+      "tags": ["protocol", "randomness", "held-out", "multi-document"]
+    },
+    {
+      "query_id": "q25",
+      "query": "C1-C8 在 UA development、UA held-out 和 VisDrone development 上的 seed 结果有什么特点？",
+      "type": "exact-term",
+      "difficulty": "hard",
+      "answerable": true,
+      "expected_answer": "不同 seed 下模型排序并不稳定，held-out 结果也显示开发集优势不能直接外推。",
+      "expected_facts": ["seed 间存在波动", "development 与 held-out 排序可能反转"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-yolo26-mamba-attribution", "chunk_index": 5, "grade": 2}
+      ],
+      "tags": ["seed", "results", "generalization"]
+    },
+    {
+      "query_id": "q26",
+      "query": "为什么这项没有稳定正收益的研究仍然具有发表价值？",
+      "type": "semantic",
+      "difficulty": "medium",
+      "answerable": true,
+      "expected_answer": "它通过严格匹配的对照和独立评估揭示了复合分支收益不能归因于 Mamba 的方法学问题，并形成了可复核的负结果证据链。",
+      "expected_facts": ["对照设计有解释力", "负结果形成新知识", "证据链可复核"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-yolo26-mamba-attribution", "chunk_index": 7, "grade": 2}
+      ],
+      "tags": ["negative-result", "publication", "methodology"]
+    },
+    {
+      "query_id": "q27",
+      "query": "这项研究对 Mamba 结论明确保留了哪些边界？",
+      "type": "semantic",
+      "difficulty": "hard",
+      "answerable": true,
+      "expected_answer": "结论不能推广到所有 YOLO26 尺度、插入点、检测器、Mamba 配置或所有目标检测任务。",
+      "expected_facts": ["三 seed 仅描述性", "单一配置不能代表所有 Mamba", "交通数据集限制外推范围"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-yolo26-mamba-attribution", "chunk_index": 8, "grade": 2}
+      ],
+      "tags": ["limitations", "scope", "generalization"]
+    },
+    {
+      "query_id": "q28",
+      "query": "Happy-LLM 教程的章节安排覆盖哪些主要主题？",
+      "type": "exact-term",
+      "difficulty": "easy",
+      "answerable": true,
+      "expected_answer": "内容从 NLP 基础、Transformer、预训练模型和 LLM 基础，扩展到 LLaMA2、训练实践、RAG 和 Agent 应用。",
+      "expected_facts": ["NLP 基础", "Transformer 和预训练", "RAG 与 Agent"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-happy-llm-0727", "chunk_index": 1, "grade": 2},
+        {"document_id": "eval-pdf-happy-llm-0727", "chunk_index": 2, "grade": 1}
+      ],
+      "tags": ["happy-llm", "course-outline", "multi-relevant"]
+    },
+    {
+      "query_id": "q29",
+      "query": "Transformer 的 Encoder 和 Decoder 在 Seq2Seq 中分别承担什么角色？",
+      "type": "semantic",
+      "difficulty": "medium",
+      "answerable": true,
+      "expected_answer": "Encoder 编码输入序列，Decoder 根据 Encoder 输出和已生成内容逐步生成目标序列。",
+      "expected_facts": ["Encoder 处理输入", "Decoder 生成输出", "用于 Seq2Seq"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-happy-llm-0727", "chunk_index": 33, "grade": 2}
+      ],
+      "tags": ["transformer", "encoder-decoder"]
+    },
+    {
+      "query_id": "q30",
+      "query": "Decoder layer 为什么包含 masked self-attention 和 cross-attention？",
+      "type": "semantic",
+      "difficulty": "hard",
+      "answerable": true,
+      "expected_answer": "masked self-attention 保证当前位置只能看见过去 token，cross-attention 则让 Decoder 使用 Encoder 的输出。",
+      "expected_facts": ["masked self-attention 防止看未来", "cross-attention 使用 Encoder 输出"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-happy-llm-0727", "chunk_index": 40, "grade": 2}
+      ],
+      "tags": ["transformer", "decoder", "attention"]
+    },
+    {
+      "query_id": "q31",
+      "query": "tokenizer 在 LLM 输入处理中负责什么？",
+      "type": "semantic",
+      "difficulty": "easy",
+      "answerable": true,
+      "expected_answer": "Tokenizer 把文本切分并编码成模型可处理的 token 或 input_ids，再交给 embedding 层。",
+      "expected_facts": ["文本切分", "转换为 input_ids", "连接 embedding 层"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-happy-llm-0727", "chunk_index": 43, "grade": 2}
+      ],
+      "tags": ["tokenizer", "input-processing"]
+    },
+    {
+      "query_id": "q32",
+      "query": "Transformer 的 Post-Norm 和 Pre-Norm 结构差异在哪里？",
+      "type": "exact-term",
+      "difficulty": "medium",
+      "answerable": true,
+      "expected_answer": "差异在于 LayerNorm 放在 Attention/子层之后还是之前；原论文示意使用 Post-Norm，而常见实现使用 Pre-Norm。",
+      "expected_facts": ["LayerNorm 位置不同", "论文示意是 Post-Norm", "实现常使用 Pre-Norm"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-happy-llm-0727", "chunk_index": 48, "grade": 2}
+      ],
+      "tags": ["transformer", "layernorm", "pre-norm", "post-norm"]
+    },
+    {
+      "query_id": "q33",
+      "query": "LoRA 相比传统全参数微调有哪些优势？",
+      "type": "semantic",
+      "difficulty": "medium",
+      "answerable": true,
+      "expected_answer": "LoRA 只训练低秩矩阵，参数量和硬件需求更低，部署时可与冻结权重合并，因此没有额外推理延迟。",
+      "expected_facts": ["训练低秩矩阵", "降低参数和硬件成本", "部署可合并且无额外延迟"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-happy-llm-0727", "chunk_index": 240, "grade": 2}
+      ],
+      "tags": ["lora", "efficient-finetuning"]
+    },
+    {
+      "query_id": "q34",
+      "query": "LoRA 应用到 Transformer 时通常修改哪些模块，target_modules 有什么作用？",
+      "type": "exact-term",
+      "difficulty": "hard",
+      "answerable": true,
+      "expected_answer": "LoRA 常应用到注意力模块的权重矩阵，target_modules 用于指定要替换或注入 LoRA 的层，例如 q_proj 和 v_proj。",
+      "expected_facts": ["作用于 attention 权重", "target_modules 指定目标层", "q_proj 和 v_proj 是示例"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-happy-llm-0727", "chunk_index": 241, "grade": 2},
+        {"document_id": "eval-pdf-happy-llm-0727", "chunk_index": 242, "grade": 1}
+      ],
+      "tags": ["lora", "transformer", "target-modules", "multi-relevant"]
+    },
+    {
+      "query_id": "q35",
+      "query": "Deep Research 和普通问答或基础 RAG 的核心区别是什么？",
+      "type": "semantic",
+      "difficulty": "medium",
+      "answerable": true,
+      "expected_answer": "普通问答或基础 RAG 通常被动响应和单次检索，而 Deep Research 会主动规划、多轮搜索、分析验证并整合报告。",
+      "expected_facts": ["普通 RAG 偏被动", "Deep Research 主动规划", "支持多轮搜索和验证"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-deep-research-project", "chunk_index": 0, "grade": 1},
+        {"document_id": "eval-pdf-deep-research-project", "chunk_index": 2, "grade": 2}
+      ],
+      "tags": ["deep-research", "rag", "comparison", "multi-relevant"]
+    },
+    {
+      "query_id": "q36",
+      "query": "一个典型 Deep Research 工作流包含哪些主要阶段？",
+      "type": "semantic",
+      "difficulty": "medium",
+      "answerable": true,
+      "expected_answer": "主要包括规划、问题演化与网页探索、记忆管理，以及答案生成和报告整合。",
+      "expected_facts": ["规划", "网页探索", "记忆管理", "报告整合"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-deep-research-project", "chunk_index": 1, "grade": 2}
+      ],
+      "tags": ["deep-research", "workflow"]
+    },
+    {
+      "query_id": "q37",
+      "query": "DeepAgents 的 task 工具为什么强调 Context Quarantine？",
+      "type": "exact-term",
+      "difficulty": "medium",
+      "answerable": true,
+      "expected_answer": "它把复杂子任务放到独立子环境中，避免中间步骤和工具细节污染主智能体上下文。",
+      "expected_facts": ["子任务独立运行", "主上下文保持简洁", "隔离中间步骤和工具细节"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-deep-research-project", "chunk_index": 5, "grade": 2}
+      ],
+      "tags": ["deepagents", "task", "context-quarantine"]
+    },
+    {
+      "query_id": "q38",
+      "query": "SubAgentMiddleware 中一次 task 委派通常经历哪些步骤？",
+      "type": "semantic",
+      "difficulty": "hard",
+      "answerable": true,
+      "expected_answer": "主 agent 触发委派，系统切换到配置好的子 agent 环境，子 agent 执行后返回结果摘要。",
+      "expected_facts": ["触发委派", "切换子 agent 环境", "返回结果摘要"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-deep-research-project", "chunk_index": 6, "grade": 2}
+      ],
+      "tags": ["subagent", "delegation", "workflow"]
+    },
+    {
+      "query_id": "q39",
+      "query": "为什么 Deep Research 流程建议保留 think_tool？",
+      "type": "semantic",
+      "difficulty": "hard",
+      "answerable": true,
+      "expected_answer": "它强制形成搜索、反思、决策循环，帮助研究助理评估知识状态、调整策略并留下可追踪记录。",
+      "expected_facts": ["形成搜索-反思-决策循环", "支持元认知", "产生可追踪记录"],
+      "relevant_chunks": [
+        {"document_id": "eval-pdf-deep-research-project", "chunk_index": 7, "grade": 2}
+      ],
+      "tags": ["think-tool", "metacognition", "traceability"]
+    },
+    {
+      "query_id": "q40",
+      "query": "这 7 篇 PDF 的 BM25 检索 Recall@10 当前是多少？",
+      "type": "unanswerable",
+      "difficulty": "hard",
+      "answerable": false,
+      "expected_answer": "当前文档中没有这个评测结果，必须先运行 BM25 evaluator 才能得到。",
+      "expected_facts": [],
+      "relevant_chunks": [],
+      "tags": ["unanswerable", "abstention", "bm25"]
+    }
+  ]
+}

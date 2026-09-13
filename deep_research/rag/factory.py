@@ -1,11 +1,14 @@
 from pathlib import Path
 from langchain_core.embeddings import Embeddings
+from langchain_openai import ChatOpenAI
 from langchain_openai import OpenAIEmbeddings
 from qdrant_client.models import Distance, VectorParams
 from qdrant_client import QdrantClient
 from langchain_qdrant import QdrantVectorStore
 
 from ..config import Settings
+from .lexical import SqliteBm25Index
+from .query_rewrite import QueryRewriter
 from .service import RagService
 
 def create_qdrant_client(path: str) -> QdrantClient:
@@ -76,6 +79,22 @@ def create_embeddings(
 
     return OpenAIEmbeddings(**kwargs)
 
+
+def create_query_rewriter(settings: Settings) -> QueryRewriter:
+    kwargs = {
+        "model": settings.model_name,
+        "api_key": settings.model_api_key,
+        "temperature": 0,
+        "timeout": 20,
+        "max_retries": 0,
+    }
+    if settings.model_base_url:
+        kwargs["base_url"] = settings.model_base_url
+    return QueryRewriter(
+        ChatOpenAI(**kwargs),
+        structured_output=False,
+    )
+
 def build_rag_service(
     settings: Settings,
 ) -> RagService:
@@ -91,6 +110,7 @@ def build_rag_service(
         )
 
         embeddings = create_embeddings(settings)
+        bm25_index = SqliteBm25Index(settings.rag_bm25_db_path)
 
         vector_store = QdrantVectorStore(
             client=client,
@@ -99,13 +119,26 @@ def build_rag_service(
             validate_collection_config=False,
         )
 
-        return RagService(
+        rag_service = RagService(
             client=client,
             embeddings=embeddings,
             vector_store=vector_store,
             collection_name=settings.rag_collection_name,
+            metadata_weight=settings.rag_metadata_weight,
+            bm25_index=bm25_index,
+            query_rewriter=(
+                create_query_rewriter(settings)
+                if settings.rag_query_rewrite_enabled
+                else None
+            ),
+            candidate_k=settings.rag_candidate_k,
+            rrf_k=settings.rag_rrf_k,
         )
+        rag_service.rebuild_lexical_index()
+        return rag_service
 
     except Exception:
+        if "bm25_index" in locals():
+            bm25_index.close()
         client.close()
         raise

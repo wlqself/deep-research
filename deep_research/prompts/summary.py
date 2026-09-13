@@ -16,6 +16,8 @@ SUMMARY_PROMPT = """
 - 不要输出新的用户问题或新的研究事实。
 - 只有当 sources、todos、artifacts 或 files 的内容明确出现在历史消息中时，才记录它们。
 - 不要假设自己可以直接读取 LangGraph state。
+- 图片附件引用是独立状态的一部分。若历史消息出现图片 attachment_id，必须原样保留，
+  不得把它替换成图片描述、删除或编造新的 ID；图片描述可以摘要，但 ID 不能摘要掉。
 
 摘要整理格式参考示例：
 
@@ -64,6 +66,9 @@ search、read、assess 或 answer。
 artifact_id
 文件名
 保存状态
+
+## IMAGE REFERENCES
+历史消息中明确出现的图片 attachment_id，逐字保留，供后续轮次重新读取已绑定的图片识别结果。
 
 输出规则：
 

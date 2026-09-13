@@ -124,6 +124,19 @@ class ToolBoundaryTests(unittest.TestCase):
         self.assertNotIn("list_memories", researcher_names)
         self.assertNotIn("forget_memory", researcher_names)
 
+    def test_image_generation_is_main_only_when_injected(self):
+        names = {
+            tool.name
+            for tool in build_supervisor_tools(
+                publishing_service=object(),
+                image_generation_service=object(),
+            )
+        }
+        self.assertIn("generate_image", names)
+        self.assertNotIn("generate_image", {
+            tool.name for tool in build_researcher_tools()
+        })
+
 
 if __name__ == "__main__":
     unittest.main()

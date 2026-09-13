@@ -1,6 +1,7 @@
 import asyncio
 import asyncio
 import logging
+import time
 
 from ..config import settings
 from .extractor import MemoryExtractor
@@ -11,6 +12,7 @@ from .review_commit import (
 from .reviewer import review_successful_turn
 from .service import MemoryService
 
+from ..log.logging_utils import log_event
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +37,15 @@ async def review_after_success(
     project_decision_confirmed: bool = False,
     explicit_correction: bool = False,
 ) -> MemoryReviewCommitResult | None:
+    started_at = time.perf_counter()
+
+    log_event(
+        logger,
+        logging.INFO,
+        "memory.review.started",
+        thread_id=thread_id,
+        status="started",
+    )
     try:
         totals = MemoryReviewCommitResult(
             created=0,
@@ -81,13 +92,59 @@ async def review_after_success(
             if not outcome.has_more_unreviewed:
                 break
 
+        log_event(
+            logger,
+            logging.INFO,
+            "memory.review.completed",
+            thread_id=thread_id,
+            status="completed",
+            elapsed_ms=round(
+                (
+                    time.perf_counter()
+                    - started_at
+                )
+                * 1000,
+                3,
+            ),
+        )
+
         return totals
 
     except asyncio.CancelledError:
+        log_event(
+            logger,
+            logging.WARNING,
+            "memory.review.cancelled",
+            thread_id=thread_id,
+            status="cancelled",
+            elapsed_ms=round(
+                (
+                    time.perf_counter()
+                    - started_at
+                )
+                * 1000,
+                3,
+            ),
+        )
         raise
 
-    except Exception:
-        logger.exception(
-            "post-success memory review failed"
+    except Exception as error:
+        log_event(
+            logger,
+            logging.ERROR,
+            "memory.review.failed",
+            thread_id=thread_id,
+            status="failed",
+            error_code="memory_review_failed",
+            exception_type=type(error).__name__,
+            elapsed_ms=round(
+                (
+                    time.perf_counter()
+                    - started_at
+                )
+                * 1000,
+                3,
+            ),
+            exc_info=True,
         )
         return None

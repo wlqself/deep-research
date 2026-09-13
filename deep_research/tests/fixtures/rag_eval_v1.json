@@ -1,0 +1,177 @@
+{
+  "version": "rag-eval-v1",
+  "corpus_id": "deep-research-contract-corpus",
+  "description": "A small, versioned retrieval corpus for comparing dense, BM25, hybrid, and reranked retrieval.",
+  "documents": [
+    {
+      "document_id": "eval-doc-index-pipeline",
+      "filename": "index-pipeline.md",
+      "chunks": [
+        {
+          "chunk_id": "eval-doc-index-pipeline:c01",
+          "section_title": "Parsing and chunking",
+          "text": "入库流程支持 PDF、Markdown 和纯文本文件。PDF 按页解析，Markdown 先按标题拆分再继续切 chunk，纯文本作为一个源文档处理。每个 chunk 都保留 document_id、filename、page_number、section_title、chunk_index 和 content_hash 元数据。"
+        },
+        {
+          "chunk_id": "eval-doc-index-pipeline:c02",
+          "section_title": "Index lifecycle",
+          "text": "文档会经历 pending、processing 和 indexed 状态。重新索引时，系统先让旧 chunk 不可检索，再删除旧的 vector points，创建新的 chunk 和 embedding，最后才把文档标记为 indexed。chunk ID 由 document 和 chunk 位置确定，因此重建时可以替换同一批逻辑数据。"
+        }
+      ]
+    },
+    {
+      "document_id": "eval-doc-retrieval-design",
+      "filename": "retrieval-design.md",
+      "chunks": [
+        {
+          "chunk_id": "eval-doc-retrieval-design:c01",
+          "section_title": "Dense retrieval",
+          "text": "Dense retrieval 会先把 query 转成 embedding，再与 Qdrant 中的 chunk 向量比较。当前 collection 使用 cosine distance。Qdrant 的 dense approximate-nearest-neighbor 路径由 HNSW 层支持；HNSW 是 dense retrieval 背后的索引，不是第二套 lexical retriever。"
+        },
+        {
+          "chunk_id": "eval-doc-retrieval-design:c02",
+          "section_title": "Hybrid and reranking",
+          "text": "Hybrid retriever 先分别从 dense retrieval 和 BM25 lexical retrieval 收集候选。两套排序结果应该用 Reciprocal Rank Fusion 合并，因为 cosine 分数和 BM25 分数不能直接比较。之后 reranker 对融合后的候选集重新打分，并返回最终较小的上下文集合。"
+        }
+      ]
+    },
+    {
+      "document_id": "eval-doc-agent-boundaries",
+      "filename": "agent-boundaries.md",
+      "chunks": [
+        {
+          "chunk_id": "eval-doc-agent-boundaries:c01",
+          "section_title": "Delegation and local knowledge",
+          "text": "Main Agent 负责监督对话，并把多步骤研究委派给 Researcher 子 agent。当问题可能由已上传材料回答时，Researcher 应先查询 local knowledge base，再使用 web search。最终面向用户的回答仍由 Main Agent 负责。"
+        },
+        {
+          "chunk_id": "eval-doc-agent-boundaries:c02",
+          "section_title": "Evidence bookkeeping",
+          "text": "知识库检索结果会注册为 S1、S2 这样的真实 source ID。Finding 保存重要且有依据的结论，并引用对应 source ID。检索 similarity score 只表示排序相似度，不是经过校准的事实可信度。"
+        }
+      ]
+    },
+    {
+      "document_id": "eval-doc-memory-scopes",
+      "filename": "memory-scopes.md",
+      "chunks": [
+        {
+          "chunk_id": "eval-doc-memory-scopes:c01",
+          "section_title": "Checkpoint and store scope",
+          "text": "checkpointer 持久化 thread 范围内的图状态，例如 messages、tasks 和短期对话进度。store 用于跨 thread recall 的数据，例如长期记忆。两者的选择取决于生命周期和作用域，而不只是数据是否存储在 SQLite 中。"
+        },
+        {
+          "chunk_id": "eval-doc-memory-scopes:c02",
+          "section_title": "Recall boundary",
+          "text": "长期记忆 recall 应该只返回数量受控的一小组相关条目。系统不应把完整对话或原始网页全文复制进长期记忆。Main Agent 控制 memory write 和 recall，Researcher 不应直接访问 long-term memory store。"
+        }
+      ]
+    },
+    {
+      "document_id": "eval-doc-cancellation",
+      "filename": "cancellation.md",
+      "chunks": [
+        {
+          "chunk_id": "eval-doc-cancellation:c01",
+          "section_title": "Cancellation behavior",
+          "text": "取消 research 请求时，必须停止正在运行的 researcher coroutine，确保每个已获取的 concurrency permit 恰好释放一次，并把仍在运行的 task 标记为 cancelled。取消前已完成的 task 保持 completed。Cancellation 不能伪造最终 assistant answer。"
+        },
+        {
+          "chunk_id": "eval-doc-cancellation:c02",
+          "section_title": "Committed data",
+          "text": "Cancellation 不会回滚已经提交的 sources、findings、artifacts、files、messages 或已完成的 task record。部分证据可以保留在线程状态中，但 cancelled task 不能被展示成成功完成。"
+        }
+      ]
+    },
+    {
+      "document_id": "eval-doc-user-facing-logs",
+      "filename": "user-facing-logs.md",
+      "chunks": [
+        {
+          "chunk_id": "eval-doc-user-facing-logs:c01",
+          "section_title": "Two levels of activity",
+          "text": "对话界面应该显示简要进度，例如“已分配给 Researcher 任务：比较两种 retrieval strategy”。日志界面可以显示时间戳、完整任务描述、工具名、elapsed time、source 数量和安全的 failure code。两个界面都应该是同一条 activity event stream 的不同 projection。"
+        },
+        {
+          "chunk_id": "eval-doc-user-facing-logs:c02",
+          "section_title": "Information boundary",
+          "text": "面向用户的日志可以展示经过清理的任务描述和工具结果摘要，但不应暴露 system prompt、API key、原始 provider error、hidden chain-of-thought 或不受限制的完整网页内容。"
+        }
+      ]
+    }
+  ],
+  "queries": [
+    {
+      "query_id": "q01",
+      "query": "PDF、Markdown 和 TXT 在入库时分别怎么解析？",
+      "relevant_chunk_ids": ["eval-doc-index-pipeline:c01"],
+      "tags": ["parsing", "metadata"]
+    },
+    {
+      "query_id": "q02",
+      "query": "重新索引时为什么要先让旧 chunk 不可检索？",
+      "relevant_chunk_ids": ["eval-doc-index-pipeline:c02"],
+      "tags": ["reindex", "lifecycle"]
+    },
+    {
+      "query_id": "q03",
+      "query": "HNSW 在这个 RAG 方案中到底是什么？",
+      "relevant_chunk_ids": ["eval-doc-retrieval-design:c01"],
+      "tags": ["dense", "hnsw"]
+    },
+    {
+      "query_id": "q04",
+      "query": "为什么混合检索不能直接把 cosine 分数和 BM25 分数相加？",
+      "relevant_chunk_ids": ["eval-doc-retrieval-design:c02"],
+      "tags": ["bm25", "hybrid", "rrf"]
+    },
+    {
+      "query_id": "q05",
+      "query": "本地知识库可能回答问题时，Researcher 和网页搜索的先后顺序是什么？",
+      "relevant_chunk_ids": ["eval-doc-agent-boundaries:c01"],
+      "tags": ["agent", "local-rag"]
+    },
+    {
+      "query_id": "q06",
+      "query": "RAG 的 similarity score 能不能直接当成事实可信度？",
+      "relevant_chunk_ids": ["eval-doc-agent-boundaries:c02"],
+      "tags": ["sources", "score"]
+    },
+    {
+      "query_id": "q07",
+      "query": "checkpointer 和 store 的主要区别是线程范围还是跨线程范围？",
+      "relevant_chunk_ids": ["eval-doc-memory-scopes:c01"],
+      "tags": ["memory", "scope"]
+    },
+    {
+      "query_id": "q08",
+      "query": "为什么不能把完整网页内容都写入长期记忆？",
+      "relevant_chunk_ids": ["eval-doc-memory-scopes:c02"],
+      "tags": ["memory", "recall-boundary"]
+    },
+    {
+      "query_id": "q09",
+      "query": "取消研究请求时，正在运行的 researcher task 应该变成什么状态？",
+      "relevant_chunk_ids": ["eval-doc-cancellation:c01"],
+      "tags": ["cancellation", "tasks"]
+    },
+    {
+      "query_id": "q10",
+      "query": "取消发生后，之前已经提交的 sources 和 findings 要不要回滚？",
+      "relevant_chunk_ids": ["eval-doc-cancellation:c02"],
+      "tags": ["cancellation", "persistence"]
+    },
+    {
+      "query_id": "q11",
+      "query": "对话界面和详细日志界面应该分别显示什么？",
+      "relevant_chunk_ids": ["eval-doc-user-facing-logs:c01"],
+      "tags": ["logs", "projection"]
+    },
+    {
+      "query_id": "q12",
+      "query": "用户日志为什么不能展示 system prompt 和隐藏推理过程？",
+      "relevant_chunk_ids": ["eval-doc-user-facing-logs:c02"],
+      "tags": ["logs", "safety"]
+    }
+  ]
+}

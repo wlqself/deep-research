@@ -23,13 +23,19 @@ htmlcov/
 
 # User and vector data
 data/
+runtime-qdrant*/
 .rag-upload-tmp/
+
+# Local publisher credentials and downloaded binaries
+deep_research/publishing/publishers/xiaohongshu/xiaohongshu-mcp/cookies.json
+deep_research/publishing/publishers/xiaohongshu/xiaohongshu-mcp/*.exe
 .rag-diagnostic*/
 .rag-diagnostic*.sqlite
 -files*
 
 # Logs
 *.log
+*.log.*
 
 # Accidental Windows cache directory
 %SystemDrive%/

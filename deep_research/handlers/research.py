@@ -1,26 +1,69 @@
-import json
 import logging
+import asyncio
+import time
 from collections.abc import AsyncIterator
-from urllib import request
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 from ..agent import run_research, stream_research_events
+from ..agent.hitl_resume import pending_native_hitl_interrupts
 from .. import agent as agent_module
 from ..memory.review_runner import review_after_success
 from ..memory.triggers import has_explicit_correction,has_confirmed_project_decision,has_memory_rule_signal
 from ..state.access import thread_values
+from ..log.log_context import set_thread_id
+from ..log.logging_utils import log_event
+from .research_memory import (
+    artifact_ids_for_thread,
+    review_successful_research,
+)
+from .research_stream import stream_answer
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+async def _reject_new_turn_while_interrupted(
+    http_request: Request,
+    thread_id: str,
+) -> None:
+    """Prevent an ordinary message from bypassing a pending HITL pause."""
+
+    agent = getattr(http_request.app.state, "agent", agent_module.agent)
+    interrupts = await pending_native_hitl_interrupts(
+        agent,
+        thread_id=thread_id,
+    )
+    if not interrupts:
+        return
+
+    first = interrupts[0]
+    value = getattr(first, "value", None)
+    if isinstance(first, dict):
+        value = first.get("value")
+    interaction_id = (
+        value.get("interaction_id")
+        if isinstance(value, dict)
+        else None
+    )
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "error_code": "hitl_pending",
+            "message": "当前会话正在等待审批，请先处理会话中的确认卡片。",
+            "interaction_id": interaction_id,
+        },
+    )
+
+
 class ResearchRequest(BaseModel):
     question: str
     thread_id: UUID | None = None
+    attachment_ids: list[str] = Field(default_factory=list, max_length=30)
+    attachment_selection_confirmed: bool = False
 
     @field_validator("question")
     @classmethod
@@ -32,6 +75,17 @@ class ResearchRequest(BaseModel):
 
         return question
 
+    @field_validator("attachment_ids")
+    @classmethod
+    def validate_attachment_ids(cls, value: list[str]) -> list[str]:
+        normalized = []
+        for attachment_id in value:
+            item = attachment_id.strip()
+            if not item:
+                raise ValueError("attachment_ids must contain non-empty strings")
+            normalized.append(item)
+        return list(dict.fromkeys(normalized))
+
 
 class ResearchResponse(BaseModel):
     answer: str
@@ -41,27 +95,12 @@ class ResearchResponse(BaseModel):
 async def _artifact_ids_for_thread(
     thread_id: str,
 ) -> set[str] | None:
-    try:
-        values = await thread_values(
-            agent_module.agent,
-            thread_id,
-        )
-    except Exception:
-        logger.exception(
-            "failed to read artifacts for memory review trigger"
-        )
-        return None
-
-    raw_artifacts = values.get("artifacts", {})
-
-    if not isinstance(raw_artifacts, dict):
-        return set()
-
-    return {
-        artifact_id
-        for artifact_id in raw_artifacts
-        if isinstance(artifact_id, str)
-    }
+    return await artifact_ids_for_thread(
+        agent_module.agent,
+        thread_id,
+        thread_values=thread_values,
+        logger=logger,
+    )
 
 """
 run_research()
@@ -75,122 +114,169 @@ async def research(
     request: ResearchRequest,
     http_request: Request,
 ) -> ResearchResponse:
+
     thread_id = request.thread_id or uuid4()
-    memory_service = getattr(
-        http_request.app.state,
-        "memory_service",
-        None,
-    )
+    set_thread_id(str(thread_id))
 
-    memory_extractor = getattr(
-        http_request.app.state,
-        "memory_extractor",
-        None,
-    )
-
-    before_artifact_ids = None
-
-    if memory_service is not None and memory_extractor is not None:
-        before_artifact_ids = await _artifact_ids_for_thread(
-            str(thread_id)
-        )
-
-    answer = await run_research(
-        request.question,
+    await _reject_new_turn_while_interrupted(
+        http_request,
         str(thread_id),
     )
 
-    after_artifact_ids = None
+    started_at = time.perf_counter()
 
-    if before_artifact_ids is not None:
-        after_artifact_ids = await _artifact_ids_for_thread(
-            str(thread_id)
-        )
-
-    report_saved = (
-        before_artifact_ids is not None
-        and after_artifact_ids is not None
-        and bool(after_artifact_ids - before_artifact_ids)
+    log_event(
+        logger,
+        logging.INFO,
+        "research.started",
+        thread_id=str(thread_id),
+        status="started",
     )
 
-    if (
-        memory_service is not None
-        and memory_extractor is not None
-        and answer.strip()
-    ):
-        await review_after_success(
-            agent_module.agent,
+    try:
+        memory_service = getattr(
+            http_request.app.state,
+            "memory_service",
+            None,
+        )
+
+        memory_extractor = getattr(
+            http_request.app.state,
+            "memory_extractor",
+            None,
+        )
+
+        before_artifact_ids = None
+
+        if memory_service is not None and memory_extractor is not None:
+            before_artifact_ids = await _artifact_ids_for_thread(
+                str(thread_id)
+            )
+
+        answer = await run_research(
+            request.question,
             str(thread_id),
+            selected_attachment_ids=tuple(request.attachment_ids),
+            attachment_selection_confirmed=request.attachment_selection_confirmed,
+        )
+
+        after_artifact_ids = None
+
+        if before_artifact_ids is not None:
+            after_artifact_ids = await _artifact_ids_for_thread(
+                str(thread_id)
+            )
+
+        report_saved = (
+            before_artifact_ids is not None
+            and after_artifact_ids is not None
+            and bool(after_artifact_ids - before_artifact_ids)
+        )
+
+        await review_successful_research(
+            agent=agent_module.agent,
+            thread_id=str(thread_id),
+            question=request.question,
             answer=answer,
             memory_service=memory_service,
-            extractor=memory_extractor,
-            explicit_correction=has_explicit_correction(request.question),
-            project_decision_confirmed=(
-                has_confirmed_project_decision(request.question)
-            ),
+            memory_extractor=memory_extractor,
             report_saved=report_saved,
-            rule_triggered=has_memory_rule_signal(request.question),
+            review_after_success=review_after_success,
+            has_explicit_correction=has_explicit_correction,
+            has_confirmed_project_decision=has_confirmed_project_decision,
+            has_memory_rule_signal=has_memory_rule_signal,
         )
-    return ResearchResponse(
-        answer=answer,
-        thread_id=thread_id,
-    )
+        elapsed_ms = round(
+            (
+                time.perf_counter()
+                - started_at
+            )
+            * 1000,
+            3,
+        )
 
+        log_event(
+            logger,
+            logging.INFO,
+            "research.completed",
+            thread_id=str(thread_id),
+            status="completed",
+            elapsed_ms=elapsed_ms,
+        )
 
+        return ResearchResponse(
+            answer=answer,
+            thread_id=thread_id,
+        )
+
+    except asyncio.CancelledError:
+        log_event(
+            logger,
+            logging.WARNING,
+            "research.cancelled",
+            thread_id=str(thread_id),
+            status="cancelled",
+            elapsed_ms=round(
+                (
+                    time.perf_counter()
+                    - started_at
+                )
+                * 1000,
+                3,
+            ),
+        )
+        raise
+
+    except Exception as error:
+        log_event(
+            logger,
+            logging.ERROR,
+            "research.failed",
+            thread_id=str(thread_id),
+            status="failed",
+            error_code="research_failed",
+            exception_type=type(error).__name__,
+            elapsed_ms=round(
+                (
+                    time.perf_counter()
+                    - started_at
+                )
+                * 1000,
+                3,
+            ),
+            exc_info=True,
+        )
+        raise
+# 引用定义的stream_answer
 async def _stream_answer(
     question: str,
     thread_id: str,
     *,
     memory_service=None,
     memory_extractor=None,
-    report_saved = False
+    report_saved=False,
+    attachment_ids: tuple[str, ...] = (),
+    attachment_selection_confirmed: bool = False,
 ) -> AsyncIterator[str]:
-    answer_parts: list[str] = []
-    report_saved = False
-
-    async for event in stream_research_events(
+    async for chunk in stream_answer(
         question,
         thread_id,
+        memory_service=memory_service,
+        memory_extractor=memory_extractor,
+        agent=agent_module.agent,
+        stream_events=stream_research_events,
+        attachment_ids=attachment_ids,
+        attachment_selection_confirmed=attachment_selection_confirmed,
+        review_callback=review_successful_research,
+        review_runner=review_after_success,
+        has_explicit_correction=has_explicit_correction,
+        has_confirmed_project_decision=(
+            has_confirmed_project_decision
+        ),
+        has_memory_rule_signal=has_memory_rule_signal,
+        logger=logger,
     ):
-        if event.get("type") == "artifact_saved":
-            report_saved = True
-
-        if event.get("type") == "text":
-            text = event.get("text", "")
-
-            if isinstance(text, str):
-                answer_parts.append(text)
-
-        if event.get("type") == "done":
-            answer = "".join(answer_parts)
-
-            if (
-                memory_service is not None
-                and memory_extractor is not None
-                and answer.strip()
-            ):
-                await review_after_success(
-                    agent_module.agent,
-                    thread_id,
-                    answer=answer,
-                    memory_service=memory_service,
-                    extractor=memory_extractor,
-                    report_saved=report_saved,
-                    explicit_correction=has_explicit_correction(question),
-                    project_decision_confirmed=(
-                        has_confirmed_project_decision(question)
-                    ),
-                    rule_triggered=has_memory_rule_signal(question),
-                )
-
-        yield (
-            json.dumps(
-                event,
-                ensure_ascii=False,
-            )
-            + "\n"
-        )
-
+        yield chunk
 
 @router.post(
     "/research/stream",
@@ -201,6 +287,11 @@ async def research_stream(
     http_request: Request,
 ) -> StreamingResponse:
     thread_id = request.thread_id or uuid4()
+    set_thread_id(str(thread_id))
+    await _reject_new_turn_while_interrupted(
+        http_request,
+        str(thread_id),
+    )
     memory_service = getattr(
         http_request.app.state,
         "memory_service",
@@ -218,6 +309,8 @@ async def research_stream(
             str(thread_id),
             memory_service=memory_service,
             memory_extractor=memory_extractor,
+            attachment_ids=tuple(request.attachment_ids),
+            attachment_selection_confirmed=request.attachment_selection_confirmed,
         ),
         media_type="application/x-ndjson; charset=utf-8",
         headers={
